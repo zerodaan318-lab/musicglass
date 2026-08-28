@@ -76,3 +76,12 @@ fixtures/**/*.large.*
 *.dll
 *.dylib
 !resources/**
+
+# Bundled FFmpeg binary (downloaded at build time, NOT committed to git)
+resources/ffmpeg/
+
+# ---- Local/private files (never commit) ----
+# 任务书原文（属用户私有指令，不是项目源码）
+任务书.txt
+# Agent 临时工具脚本目录
+.toolchain/
