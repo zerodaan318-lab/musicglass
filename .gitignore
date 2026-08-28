@@ -1,0 +1,78 @@
+# ---- Environment / secrets ----
+.env
+.env.*
+*.key
+*.token
+*credentials*
+*.pem
+*.p12
+
+# ---- Logs & temp ----
+logs/
+temp/
+tmp/
+*.log
+
+# ---- Rust ----
+target/
+Cargo.lock.orig
+
+# ---- Node ----
+node_modules/
+dist/
+build/
+.cache/
+.parcel-cache/
+*.tsbuildinfo
+
+# ---- Tauri ----
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+
+# ---- Python (工具脚本用) ----
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ---- IDE / OS ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- User music files (严禁上传) ----
+*.mp3
+*.flac
+*.wav
+*.m4a
+*.aac
+*.ogg
+*.opus
+*.ape
+*.wma
+*.ncm
+*.qmc*
+*.mgg*
+*.mflac*
+*.alac
+*.aiff
+*.bin
+!fixtures/**/*.mp3
+!fixtures/**/*.flac
+!fixtures/**/*.wav
+
+# ---- Large binary test outputs ----
+fixtures/**/output*/
+fixtures/**/*.large.*
+
+# ---- build artifacts ----
+*.exe
+*.msi
+*.zip
+*.7z
+*.dll
+*.dylib
+!resources/**
