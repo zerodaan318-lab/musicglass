@@ -26,6 +26,9 @@ pub enum AppError {
     #[error("ffmpeg execution failed: {0}")]
     FfmpegFailed(String),
 
+    #[error("metadata error: {reason}")]
+    Metadata { reason: String },
+
     #[error("metadata field could not be mapped: {field}")]
     MetadataMapping { field: String },
 
@@ -53,6 +56,7 @@ impl AppError {
             AppError::FileTooLarge { .. } => "FILE_TOO_LARGE",
             AppError::UnsafePath(_) => "UNSAFE_PATH",
             AppError::FfmpegFailed(_) => "FFMPEG_FAILED",
+            AppError::Metadata { .. } => "METADATA_ERROR",
             AppError::MetadataMapping { .. } => "METADATA_MAPPING",
             AppError::Plugin { .. } => "PLUGIN_ERROR",
             AppError::KeyRequired { .. } => "KEY_REQUIRED",
@@ -69,6 +73,7 @@ impl AppError {
             AppError::FileTooLarge { .. } => "Try processing fewer/larger files separately, or increase the temp space.",
             AppError::UnsafePath(_) => "The file path contains invalid characters or traversal attempts.",
             AppError::FfmpegFailed(_) => "Reinstall or update FFmpeg, then retry the conversion.",
+            AppError::Metadata { .. } => "The metadata could not be read or written; the file may be corrupt.",
             AppError::MetadataMapping { .. } => "Some metadata could not be written to the target format.",
             AppError::Plugin { .. } => "The format plugin failed to parse the container. The file may be unsupported.",
             AppError::KeyRequired { .. } => "Provide the required key for this proprietary format to continue.",

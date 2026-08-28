@@ -3,25 +3,9 @@
 //! Detects audio format from extension, magic bytes, and container structure.
 //! Returns a confidence score so the UI can warn on low-confidence guesses.
 
-use musicglass_core::{AppError, Result};
+use musicglass_core::{AppError, Format, Result};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Format {
-    Mp3,
-    Flac,
-    Wav,
-    M4a,
-    Aac,
-    Ogg,
-    Opus,
-    Ape,
-    Wma,
-    Ncm,
-    Qmc,
-    Unknown,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Detection {
@@ -31,7 +15,7 @@ pub struct Detection {
 
 impl Detection {
     pub fn is_proprietary(&self) -> bool {
-        matches!(self.format, Format::Ncm | Format::Qmc)
+        self.format.is_proprietary()
     }
     pub fn is_supported_input(&self) -> bool {
         !matches!(self.format, Format::Unknown)

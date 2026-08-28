@@ -9,6 +9,7 @@
 pub mod audio;
 pub mod container;
 pub mod error;
+pub mod format;
 pub mod metadata;
 pub mod path;
 pub mod plugin;
@@ -16,5 +17,6 @@ pub mod plugin;
 pub use audio::AudioInfo;
 pub use container::{AudioStream, FileInfo};
 pub use error::{AppError, Result};
+pub use format::Format;
 pub use metadata::Metadata;
 pub use plugin::MusicContainer;

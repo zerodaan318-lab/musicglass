@@ -1,15 +1,19 @@
-//! Metadata reading/writing (task book §20, §21).
+//! Metadata reading/writing (task book §20, §21, §22).
 //!
-//! Phase 3 will implement readers/writers per format and the MetadataMapper.
-//! This crate currently defines the module boundaries and re-exports the
-//! Unified Metadata model from `musicglass-core`.
+//! - `reader` — read any supported format into Unified [`Metadata`]
+//! - `writer` — write Unified [`Metadata`] into a target format
+//! - `cover`  — read/embed cover art (JPEG/PNG/WEBP)
+//! - `mapper` — format capability checks & loss tracking
+//!
+//! Phase 3 implements these on top of [`lofty`], which covers all Phase-1
+//! output formats and carries cover/lyrics.
 
-pub use musicglass_core::Metadata;
+pub mod cover;
+pub mod mapper;
+pub mod reader;
+pub mod writer;
 
-/// Maps a [`Metadata`] into a target format's tag set.
-///
-/// Implemented in Phase 3. Returns the list of fields that could not be
-/// represented in the target (so the UI can warn, never silently drop).
-pub fn map_to_target(_meta: &Metadata, _target: &str) -> Vec<String> {
-    Vec::new()
-}
+pub use cover::{CoverArt, read_cover, write_cover};
+pub use mapper::{unsupported_fields};
+pub use reader::read_metadata;
+pub use writer::{tag_type_for, write_metadata};
