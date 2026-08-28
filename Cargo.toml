@@ -1,0 +1,25 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/detector",
+    "crates/audio",
+    "crates/metadata",
+    "crates/task-manager",
+    "crates/plugins",
+    "crates/plugins/ncm",
+    "crates/plugins/qmc",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["MusicGlass"]
+description = "Local Windows music format converter"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+thiserror = "1"
+log = "0.4"
+anyhow = "1"

@@ -1,0 +1,11 @@
+[package]
+name = "musicglass-plugins"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+musicglass-core = { path = "../core" }
+musicglass-plugins-ncm = { path = "ncm" }
+musicglass-plugins-qmc = { path = "qmc" }
+serde.workspace = true
