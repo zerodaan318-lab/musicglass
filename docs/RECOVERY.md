@@ -1,67 +1,73 @@
-# MusicGlass 恢复手册（RECOVERY）
+# MusicGlass 恢复手册
 
-> 目标：即使本地项目目录完全丢失，也能从 GitHub 恢复开发（任务书第 72 节）。
-> 本文档随 Phase 进展持续补全命令与版本号。
-
----
+> 目标：即使本地项目目录完全丢失，也能从 GitHub 恢复完整开发环境（任务书第 72 节）。
 
 ## 1. 从 GitHub 克隆
+
 ```powershell
-# 任意干净目录（建议非 OneDrive，例如 D:\Hermes）
-git clone https://github.com/zerodaan318-lab/musicglass.git D:\Hermes\MusicGlass
-cd D:\Hermes\MusicGlass
+git clone https://github.com/zerodaan318-lab/musicglass.git
+cd musicglass
 ```
+
+如果仓库是 Private，先确保已登录 GitHub（`gh auth login` 或配置 SSH key）。
 
 ## 2. 恢复开发环境
 
 ### 2.1 Rust 工具链
-本项目 Rust 装在非 OneDrive 目录，重装命令：
+本项目工具链装在 `D:\Hermes\mg-rust`（非默认路径）。恢复方式：
+
 ```powershell
 $env:RUSTUP_HOME = "D:\Hermes\mg-rust\rustup"
 $env:CARGO_HOME  = "D:\Hermes\mg-rust\cargo"
-# rustup-init.exe 可从 https://rustup.rs 下载（Windows x64）
-D:\Hermes\rustup-init.exe -y --no-modify-path --default-toolchain stable --profile minimal
+# 若目录不存在，先下载 rustup-init.exe 并安装：
+#   D:\Hermes\rustup-init.exe -y --no-modify-path --default-toolchain stable --profile minimal
+# 然后设默认：
+rustup default stable-x86_64-pc-windows-msvc
 ```
-验证：`D:\Hermes\mg-rust\cargo\bin\cargo --version`
 
-### 2.2 Node.js + pnpm
-- 安装 Node.js LTS（官网或 nvm）。
-- `npm i -g pnpm`
-- 项目前端依赖：`pnpm install`（在仓库根或 `apps/desktop` 视脚手架而定）
+调用 cargo 时用绝对路径：`D:\Hermes\mg-rust\cargo\bin\cargo`。
 
-### 2.3 FFmpeg（随包分发，不进 Git）
-开发期联调需要本地 FFmpeg：
-- 自动：运行 `D:\Hermes\dl_ffmpeg.ps1`（下载并解压到 `D:\Hermes\mg-ffmpeg`，再拷入 `resources/ffmpeg/bin`）。
-- 手动：从 https://www.gyan.dev/ffmpeg/builds 取 release-essentials，解压后把 `bin/ffmpeg.exe`、`bin/ffprobe.exe` 放到 `resources/ffmpeg/bin/`。
+### 2.2 Node.js
+前端用 Node 22+（npm 10+）。从 nodejs.org 安装 LTS 即可。
+
+### 2.3 Tauri CLI
+```powershell
+npm install -g @tauri-apps/cli@latest
+```
+
+### 2.4 FFmpeg（随包分发，不进 git）
+下载 static build 解压到 `resources/ffmpeg/`（结构见 `.gitignore` 排除项）：
+- 下载 `ffmpeg-release-essentials.zip`（gyan.dev 或 BtbN）
+- 解压后确保 `resources/ffmpeg/bin/ffmpeg.exe` 与 `ffprobe.exe` 存在
 
 ## 3. 构建
+
 ```powershell
-# 核心 crate 检查/测试
-$env:CARGO_HOME = "D:\Hermes\mg-rust\cargo"; $env:RUSTUP_HOME = "D:\Hermes\mg-rust\rustup"
-D:\Hermes\mg-rust\cargo\bin\cargo test --workspace
+# 后端
+cargo build
 
-# Tauri 桌面应用（开发模式）
-pnpm tauri dev
-
-# 打包 EXE / Portable（Phase 8）
-pnpm tauri build
+# 前端 + 桌面（需先装 Tauri CLI 与 WebView2）
+cd apps/desktop
+npm install
+npm run tauri dev      # 开发模式
+npm run tauri build    # 产出 EXE / Portable
 ```
 
-## 4. 运行
-- 开发：`pnpm tauri dev`
-- 生产：构建后的 `MusicGlass.exe`（Portable）或安装 `MusicGlass-Setup.exe`
+## 4. 运行测试
 
-## 5. 恢复历史数据库
-- `history.db`（SQLite）位于用户数据目录（具体路径 Phase 4 确定）。
-- 若文件丢失，程序启动时应自动重建空表（见 `task-manager` 的 `HistoryStore::ensure_schema`）。
-- 重要历史建议定期从用户数据目录另存备份。
+```powershell
+cargo test
+```
 
-## 6. 生成 EXE（Phase 8 补全）
-- Installer：`pnpm tauri build` 产出 `MusicGlass-Setup.exe`
-- Portable：Tauri 产出 portable 包（具体形态 Phase 8 确定）
-- FFmpeg 与 SQLite 随包内嵌，用户无需额外安装。
+## 5. 恢复数据库
+无需恢复——`history.db` 是运行时在用户机器生成的本地文件，不进 git，首次运行自动建表。
 
-## 7. 常见问题
-- **WebView2 缺失**：Windows 运行 `pnpm tauri dev`/`build` 前需安装 WebView2 Runtime。
-- **中文/Emoji 路径乱码**：确保 Rust `std::fs` 与 FFmpeg 参数均走 UTF-8；Windows 下用 `std::os::windows::ffi::OsStrExt` 正确传参。
-- **OneDrive 同步冲突**：Rust target / node_modules 必须放在非 OneDrive 目录，勿纳入同步。
+## 6. 生成 EXE
+见 Phase 8 产物：`MusicGlass-Setup.exe` 与 `MusicGlass-Portable.zip`（或 Portable exe），FFmpeg 一并打包。
+
+## 7. 快速核对清单
+- [ ] `git clone` 成功
+- [ ] `cargo --version` 可用
+- [ ] `resources/ffmpeg/bin/ffmpeg.exe` 存在
+- [ ] `cargo build` 通过
+- [ ] `cargo test` 全绿

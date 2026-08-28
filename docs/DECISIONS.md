@@ -1,52 +1,35 @@
-# MusicGlass 技术决策记录（DECISIONS）
+# MusicGlass 技术决策记录
 
-> 记录重要技术选择及其理由，便于后续重构时追溯「当初为什么这么设计」（任务书第 78 节）。
-> 任何选型变更都必须在此追加新条目，不要覆盖旧条目。
+> 记录每个重要技术选择及其理由，方便后续重构时不丢失上下文（任务书第 78 节）。
 
----
+## D-001 为什么选 Tauri 2 而不是 Electron
+- **决策**：桌面壳用 Tauri 2。
+- **理由**：包体小（WebView2 复用系统浏览器）、Rust 后端天然类型安全、内存占用低、默认安全模型（Capability 作用域）避免任意文件写入。Electron 包体大、需 bundled Chromium，对"本地音乐转换器"这类轻量工具过度。
 
-## D-001：选择 Tauri 2 作为桌面壳
-- **时间**：Phase 0（2026-08-28）
-- **决定**：使用 Tauri 2 + React/TS 前端，而非 Electron。
-- **理由**：
-  - 包体远小于 Electron（WebView2 系统级复用）。
-  - Rust 后端与核心 crate 同一语言，IPC 类型可对齐。
-  - 文件系统访问走 Tauri 权限/作用域，天然限制任意路径写入，契合安全边界。
-- **代价**：Windows 需 WebView2 Runtime（安装包可引导）；Rust 编译链较重。
+## D-002 为什么用 Rust 做核心
+- **决策**：所有业务逻辑（检测/转换/Metadata/任务/插件）用 Rust crate。
+- **理由**：音频参数、Metadata 映射要求零丢失字段，强类型 `Metadata` 模型能编译期防止字段遗漏；并发与流式 IO 安全性优于脚本语言；FFmpeg 通过参数数组调用，避免 shell 注入。
 
-## D-002：核心逻辑全部用 Rust
-- **决定**：检测/转换/Metadata/任务/插件均用 Rust crate，不用 Node 做重逻辑。
-- **理由**：强类型保证音频参数（SampleRate/BitDepth/Channels）与 Metadata 字段不丢；FFmpeg 通过 `std::process` 参数数组调用，规避命令注入。
+## D-003 为什么用 FFmpeg 作为编解码底层
+- **决策**：不自研编解码器，统一走 FFmpeg。
+- **理由**：成熟、覆盖所有目标格式、PCM 提取可做 Bit-perfect 验证。重造轮子既不稳定也不符合任务书第 6 节"不要重复实现成熟编解码器"。
 
-## D-003：FFmpeg 作为唯一编解码底层
-- **决定**：不自己实现任何成熟编解码器，全部走 FFmpeg 进程调用。
-- **理由**：成熟、跨格式、可 `-f crc` / PCM 提取做校验；随包分发静态构建，用户无需自装。
+## D-004 为什么用 SQLite
+- **决策**：转换历史用 SQLite（单文件 `history.db`）。
+- **理由**：零配置、随程序本地存储、支持结构化查询（按状态/格式/时间检索历史），无需独立服务进程。
 
-## D-004：SQLite 记录历史
-- **决定**：用 `rusqlite` 维护单文件 `history.db`。
-- **理由**：轻量、单文件、易备份；满足任务书第 38 节全部字段要求。
+## D-005 为什么用插件 trait 而非 if/else
+- **决策**：专有格式（NCM/QMC）实现 `MusicContainer` trait，通过 `Plugin` 枚举注册分发。
+- **理由**：任务书第 7 节明确禁止主程序写 `if ncm / if qmc`。但 trait 方法无 `self`（遵循任务书签名），故**不可 `dyn`**，改用枚举匹配分发，既保留静态接口又支持动态选择，且无循环依赖（枚举在 `plugins` crate，依赖 core+ncm+qmc）。
 
-## D-005：专有格式用插件 trait，禁止 if/else 堆主程序
-- **决定**：定义 `MusicContainer` trait，NCM/QMC 各自实现，主程序经 `PluginRegistry` 调用。
-- **理由**：任务书第 7 节强制要求；不同专有格式内部结构差异大，必须可独立演进。
+## D-006 为什么 Unified Metadata 放在 core
+- **决策**：`Metadata` 模型定义在 `musicglass-core`，各格式 reader/writer 都映射至此。
+- **理由**：单一真相源，避免各 crate 各自定义结构体导致字段漂移；`lost_fields()` 方法集中实现"丢失字段提示"逻辑（任务书第 21 节）。
 
-## D-006：Unified Metadata 中间层
-- **决定**：所有格式先读入统一 `Metadata` 结构，输出时按目标格式能力回写。
-- **理由**：不同格式 Metadata 标准不同（ID3 / Vorbis / MP4 atom / APE），统一中间层避免每对组合写映射。
+## D-007 为什么 FFmpeg 通过参数数组调用
+- **决策**：`std::process::Command` 传 `&[&str]`，绝不字符串拼接 shell。
+- **理由**：用户文件名含空格/特殊字符/Emoji 时，shell 拼接会产生命令注入或解析错误（任务书第 49 节安全要求）。
 
-## D-007：Rust 工具链安装到非 OneDrive 目录
-- **决定**：`RUSTUP_HOME=D:\Hermes\mg-rust\rustup`，`CARGO_HOME=D:\Hermes\mg-rust\cargo`。
-- **理由**：OneDrive 同步目录放 Rust target（数万小文件）会被同步折磨且易冲突；非 OneDrive 路径干净、可一键清理。
-- **影响**：不修改系统 PATH，调用 cargo 用绝对路径 `D:\Hermes\mg-rust\cargo\bin\cargo`。
-
-## D-008：FFmpeg 二进制随包分发、不进 Git
-- **决定**：FFmpeg 下载到 `resources/ffmpeg/bin/`，由 `.gitignore` 排除，构建时打包进 EXE/Portable。
-- **理由**：任务书第 42/50/57 节——用户不应自装 FFmpeg；大型二进制不进仓库。
-
-## D-009：GitHub 仓库默认 Private
-- **决定**：`zerodaan318-lab/musicglass` 为 Private，稳定后再考虑公开。
-- **理由**：任务书第 67 节——当前为开发阶段，先保护未完成代码与测试资料。
-
-## D-010：每功能独立 commit + 持续 push，但 EXE 构建前先询问
-- **决定**：代码 commit/push 按任务书自动执行；生成安装包/Portable EXE 前先与用户确认。
-- **理由**：兼顾任务书「持续同步」要求与用户「构建前先询问」的偏好。
+## D-008 为什么 Rust 工具链装在 D:\Hermes\mg-rust（而非默认 C 盘）
+- **决策**：`RUSTUP_HOME`/`CARGO_HOME` 指向 `D:\Hermes\mg-rust`，不修改全局 PATH。
+- **理由**：项目目录在 OneDrive 同步区，避免几万小文件被同步；集中管理便于清理；不污染用户全局环境（用户偏好：非必须不塞 C 盘）。
