@@ -92,6 +92,8 @@ export interface ConversionTask {
   title: string;
   artist?: string;
   coverPath?: string;
+  /** 原始文件真实路径（Tauri 环境下由前端透传，模拟环境为空） */
+  path?: string;
   fromFormat: AudioFormat;
   toFormat: AudioFormat;
   progress: number; // 0..100

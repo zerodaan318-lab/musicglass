@@ -1,0 +1,38 @@
+[package]
+name = "musicglass-desktop"
+version = "0.1.0"
+description = "MusicGlass 本地音乐格式转换器 - 桌面壳"
+authors = ["Hermes Agent"]
+edition = "2021"
+
+# 脱离根 Rust workspace：Tauri 壳独立编译，通过 path 依赖引用 crates/*
+[workspace]
+
+# 与 workspace 解耦：Tauri 二进制独立编译，引用 workspace 的 crates
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# 业务 crate（指向 workspace 根下的 crates/*）
+musicglass-core = { path = "../../../crates/core" }
+musicglass-detector = { path = "../../../crates/detector" }
+musicglass-audio = { path = "../../../crates/audio" }
+musicglass-metadata = { path = "../../../crates/metadata" }
+musicglass-task-manager = { path = "../../../crates/task-manager" }
+musicglass-plugins = { path = "../../../crates/plugins" }
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[features]
+# 默认关闭自定义协议（dev 用 devUrl）
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

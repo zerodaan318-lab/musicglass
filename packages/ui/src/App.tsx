@@ -55,7 +55,7 @@ export default function App() {
           >
             {view === 'home' && (
               <div className="mx-auto max-w-4xl space-y-6">
-                <HomePage onFilesAdded={store.addFiles} />
+                <HomePage onAddPaths={store.addFilesFromPaths} />
                 {store.summary && <ImportSummary summary={store.summary} files={store.files} />}
               </div>
             )}

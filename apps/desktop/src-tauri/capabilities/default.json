@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-capability",
+  "description": "MusicGlass 主窗口权限",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:event:default",
+    "core:path:default",
+    "core:webview:default",
+    "core:app:default"
+  ]
+}

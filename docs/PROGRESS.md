@@ -96,7 +96,7 @@
 - Metadata 真实读写（Phase 3）
 - 任务系统：队列/并发/取消重试/SQLite 历史 + 端到端转换验证（Phase 4）
 
-### Phase 7 — UI（玻璃拟态前端）🚧 进行中
+### Phase 7 — UI（玻璃拟态前端）✅ 完成
 - 技术栈（任务书 §40/§44）：React 18 + TypeScript + Vite + Tailwind CSS 3 + Framer Motion 11；桌面壳后续 Tauri 2（`apps/desktop`，Phase 8）
 - 目录：`packages/ui`（React 前端）、`packages/shared`（前后端共享 TS 类型，与 Rust `core` serde 结构对齐）
 - 设计系统（`packages/ui/src/index.css` + `tailwind.config.js`）：
@@ -111,11 +111,29 @@
   - `TaskList`（Cover/Title/Artist/格式箭头/进度/速度/剩余/Pause/Cancel，§31）
   - `SettingsPage`（General/Appearance/Conversion/Output/Metadata/Performance/Advanced/About，§33-§37）
 - 状态管理：`store.tsx`（轻量 `useAppStore`，受控状态，无散落全局变量）；`App.tsx` 侧边栏导航 + 视图切换 + 全局错误层
-- 待完成：子代理并行产出 5 个页面文件 → 串联验证 → `pnpm install` + 类型检查/构建
+- 验证：`pnpm build`（tsc -b && vite build）零错误通过
+
+### Phase 8 — Tauri 桌面壳 🚧 代码完成，待本机链接验证
+- 建立 `apps/desktop/src-tauri/`（Tauri 2 桌面壳），把 `packages/ui` 与 `crates/*` 桥接
+- 文件：`Cargo.toml`（脱离根 workspace，path 依赖 crates）、`tauri.conf.json`、`capabilities/default.json`、`build.rs`、`src/main.rs`
+- `main.rs` 实现 6 个 IPC 命令接真实后端（任务书 §7 插件架构，无 if ncm/if qmc）：
+  - `detect_files` → `detector::detect`；`inspect_audio` → `audio::inspect`
+  - `extract_proprietary` → `Plugin::find().extract_audio`（NCM/QMC 解密）
+  - `extract_metadata` → `plugin.extract_metadata` / `metadata::read_metadata`
+  - `convert_audio` → `audio::convert`；`doctor` → `audio::ffmpeg_available`
+- 前端 `tauri.ts` 适配层：动态 `import('@tauri-apps/api')`，**Tauri 内真 invoke、纯 Vite 预览降级模拟**（同一套 UI 双模式）
+- store 改造：`addFilesFromPaths` 走 `detectFiles`（真实+降级），`startConversion` 透传真实路径
+- 图标占位（icons/*.png + icon.ico 由脚本生成）
+- **验证状态（诚实声明）**：
+  - ✅ `cargo check` 通过（Rust 类型检查 + build.rs 配置校验 + capabilities 校验 + frontendDist 校验全过）
+  - ❌ `cargo tauri dev/build` **本机无法链接运行**，缺 MSVC（`cl.exe` 未安装，VS Build Tools 静默安装失败，需管理员）与 WebView2 Runtime（winget 已下架，需官方直链）
+  - 补齐环境后即可 `cargo tauri dev` 真机验证（步骤见 `apps/desktop/README.md`）
+- cargo-tauri CLI 已装（`v2.11.4`，装在 D:\Hermes\mg-rust）
 
 ## 待完成
-- Phase 7 收尾（页面串联 + 构建验证）
-- Phase 8 ~ Phase 11（见 `PROJECT_PLAN.md`）
+- 补齐 MSVC + WebView2 后，本机验证 `cargo tauri dev` 真运行（接真实 detect/convert）
+- Phase 8 EXE 打包（nsis 安装包 + zip 便携包，目标 §8）
+- Phase 9 ~ Phase 11（见 `PROJECT_PLAN.md`）
 
 ## 已知问题
 - `lofty` 的 `MimeType` 枚举无 Webp 变体，封面写 webp 时经 `MimeType::from_str` 落入 `Unknown` 分支（数据保留，mime 标记为 image/webp）；读取时也能正确取回 bytes。功能可用，仅类型枚举不显式标注 webp。
