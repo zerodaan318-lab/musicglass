@@ -5,7 +5,7 @@
 ## 当前状态
 
 - **版本**：v0.0.3（开发初期）
-- **当前 Phase**：Phase 5 ✅ 完成（NCM 插件 + 格式研究），准备进入 Phase 6（QMC 插件）
+- **当前 Phase**：Phase 6 ✅ 完成（QMC 插件 + 格式研究），准备进入 Phase 7（UI）
 - **最近 Commit**：见下方 Git 状态
 - **GitHub**：✅ 已连接 `zerodaan318-lab/musicglass`（Private），main 已同步
 
@@ -75,6 +75,19 @@
 - `crates/plugins/ncm/tests/metadata.rs`：6 个单元测试（格式嗅探 + metadata 映射）全过
 - **诚实声明**：尚未用真实 `.ncm` 文件做端到端解密验证，待用户提供合法拥有的样本后补充（文档已记录）
 - 全量构建通过，新增 6 测试，总计 **29 个测试全过**
+
+### Phase 6 — QMC 插件 ✅ 完成
+- `crates/plugins/qmc/src/decrypt.rs`：clean-room 重新实现的 QMC 解密
+  - 整文件逐字节 XOR keystream（参考 `presburger/qmc-decoder` MIT，seed.hpp 状态机 1:1 翻译）
+  - `QmcSeed`：固定 8×7 查找表 + 锯齿索引游走，每 0x8000 字节跳过 1 位
+  - 前 10 字节 keystream（c3 4a d6 ca 90 67 f7 52 d8 a1）经单元测试对照参考实现验证
+- `crates/plugins/qmc/src/metadata.rs`：扩展名→内嵌格式映射 + 魔数嗅探
+- `crates/plugins/qmc/src/lib.rs`：实现 `MusicContainer` trait 全部 5 方法
+  - QMC 无独立 metadata/cover 段：解密后落临时文件，调 `musicglass-metadata` 读标签/封面（与标准音频同路径）
+- `docs/FORMAT_RESEARCH_QMC.md`：结构/算法/来源/License 合规（任务书 §9 强制要求）
+- `crates/plugins/qmc/tests/keystream.rs`：5 个单元测试（keystream 对照 + 格式嗅探）全过
+- 全量构建通过，新增 5 测试，总计 **34 个测试全过**
+- **诚实声明**：尚未用真实 QMC 文件做端到端验证，待用户提供样本后补充（同 NCM 做法，测试在样本缺失时 skip）
 
 ## 已完成
 - 项目脚手架、Git/GitHub 初始化（Phase 0）

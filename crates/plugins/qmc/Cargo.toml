@@ -6,4 +6,5 @@ license.workspace = true
 
 [dependencies]
 musicglass-core = { path = "../../core" }
+musicglass-metadata = { path = "../../metadata" }
 serde.workspace = true

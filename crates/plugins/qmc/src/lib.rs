@@ -1,16 +1,28 @@
-//! QMC plugin (task book §9).
+//! QMC plugin: implements [`MusicContainer`] for QQ Music encrypted containers
+//! (task book §9). Handles the `.qmc` / `.qmc0` / `.qmc2` / `.qmc3` / `.mgg` /
+//! `.mgg0` / `.mgg1` / `.mflac` / `.mflac0` family.
 //!
-//! Phase 6 implements per-version parsing (qmc0/2/3, mgg, mflac...).
-//! Different QMC versions are NOT treated as one format — each is handled
-//! separately. Key-required cases return [`AppError::KeyRequired`].
+//! Unlike NCM, QMC has NO separate metadata/cover segment — the whole file is
+//! a single XOR stream cipher, and the decrypted output IS the inner audio
+//! (MP3/FLAC/OGG). Tags and cover are read from that audio via lofty, exactly
+//! like any standard file.
 
-use musicglass_core::{AppError, AudioInfo, AudioStream, FileInfo, Metadata, Result};
-use musicglass_core::MusicContainer;
-use std::path::Path;
+mod decrypt;
+pub mod metadata;
+
+pub use decrypt::QmcSeed;
+
+use musicglass_core::{
+    AppError, AudioInfo, AudioStream, FileInfo, Metadata, MusicContainer, Result,
+};
+use std::fs::File;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 pub struct QmcPlugin;
 
 impl MusicContainer for QmcPlugin {
+    /// Identify by extension (QMC is not magic-byte tagged).
     fn can_handle(path: &Path) -> bool {
         let ext = path
             .extension()
@@ -19,26 +31,100 @@ impl MusicContainer for QmcPlugin {
             .to_ascii_lowercase();
         matches!(
             ext.as_str(),
-            "qmc" | "qmc0" | "qmc2" | "qmc3" | "mgg" | "mgg0" | "mgg1" | "mflac" | "mflac0"
+            "qmc" | "qmc0" | "qmc2" | "qmc3" | "mgg" | "mgg0" | "mgg1" | "mflac" | "mflac0" | "qmcogg"
         )
     }
 
-    fn inspect(_path: &Path) -> Result<FileInfo> {
-        Err(AppError::Plugin {
-            plugin: "qmc".into(),
-            reason: "QMC parsing implemented in Phase 6 (per-version)".into(),
+    /// Decrypt and report the inner audio info (sniffed from magic bytes).
+    fn inspect(path: &Path) -> Result<FileInfo> {
+        let mut file = File::open(path).map_err(|e| AppError::Io {
+            path: path.to_path_buf(),
+            source: e,
+        })?;
+        let audio = decrypt::decrypt_qmc(&mut file)?;
+        let codec = metadata::detect_by_magic(&audio);
+        let lossless = matches!(codec, "flac" | "wav" | "ape" | "alac" | "aiff");
+
+        Ok(FileInfo {
+            format: "qmc".into(),
+            inner_codec: codec.into(),
+            audio_info: AudioInfo {
+                codec: codec.into(),
+                bit_depth: None,
+                sample_rate: 0,
+                channels: 0,
+                duration_secs: 0.0,
+                lossless,
+                bitrate: None,
+                file_size: audio.len() as u64,
+            },
         })
     }
-    fn extract_audio(_path: &Path) -> Result<AudioStream> {
-        Err(AppError::Plugin { plugin: "qmc".into(), reason: "Phase 6".into() })
+
+    /// Decrypt and return the raw inner audio bytes.
+    fn extract_audio(path: &Path) -> Result<AudioStream> {
+        let mut file = File::open(path).map_err(|e| AppError::Io {
+            path: path.to_path_buf(),
+            source: e,
+        })?;
+        let audio = decrypt::decrypt_qmc(&mut file)?;
+        let codec = metadata::detect_by_magic(&audio);
+        Ok(AudioStream {
+            data: audio,
+            codec: codec.into(),
+        })
     }
-    fn extract_metadata(_path: &Path) -> Result<Metadata> {
-        Err(AppError::Plugin { plugin: "qmc".into(), reason: "Phase 6".into() })
+
+    /// QMC stores tags inside the decrypted audio, not in a side segment.
+    /// Decrypt to a temp file and read tags via lofty.
+    fn extract_metadata(path: &Path) -> Result<Metadata> {
+        let mut file = File::open(path).map_err(|e| AppError::Io {
+            path: path.to_path_buf(),
+            source: e,
+        })?;
+        let audio = decrypt::decrypt_qmc(&mut file)?;
+
+        let ext = metadata::format_from_ext(path);
+        let tmp = write_temp(&audio, ext)?;
+        let res = musicglass_metadata::read_metadata(&tmp);
+        let _ = std::fs::remove_file(&tmp);
+        res.map_err(|e| AppError::Metadata {
+            reason: e.to_string(),
+        })
     }
-    fn extract_cover(_path: &Path) -> Result<Option<Vec<u8>>> {
-        Err(AppError::Plugin { plugin: "qmc".into(), reason: "Phase 6".into() })
+
+    /// Same approach as metadata: decrypt to temp, read cover via lofty.
+    fn extract_cover(path: &Path) -> Result<Option<Vec<u8>>> {
+        let mut file = File::open(path).map_err(|e| AppError::Io {
+            path: path.to_path_buf(),
+            source: e,
+        })?;
+        let audio = decrypt::decrypt_qmc(&mut file)?;
+
+        let ext = metadata::format_from_ext(path);
+        let tmp = write_temp(&audio, ext)?;
+        let res = musicglass_metadata::read_cover(&tmp);
+        let _ = std::fs::remove_file(&tmp);
+        res.map(|opt| opt.map(|c| c.data))
+            .map_err(|e| AppError::Metadata {
+                reason: e.to_string(),
+            })
     }
 }
 
-#[allow(unused)]
-fn _unused(_: AudioInfo) {}
+/// Write decrypted audio to a per-run temp file so lofty can probe it.
+fn write_temp(audio: &[u8], ext: &str) -> Result<PathBuf> {
+    let mut path = std::env::temp_dir();
+    // unique enough for a transient probe; not security-sensitive
+    let name = format!("musicglass_qmc_{}_{}.{}", std::process::id(), ext, ext);
+    path.push(name);
+    let mut f = File::create(&path).map_err(|e| AppError::Io {
+        path: path.clone(),
+        source: e,
+    })?;
+    f.write_all(audio).map_err(|e| AppError::Io {
+        path: path.clone(),
+        source: e,
+    })?;
+    Ok(path)
+}
