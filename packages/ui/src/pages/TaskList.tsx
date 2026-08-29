@@ -142,7 +142,23 @@ export function TaskList({ tasks, onPause, onCancel, onResume }: TaskListProps) 
                     <div className="mt-3 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-4 text-xs text-muted">
                         {task.status === 'completed' && task.outputPath ? (
-                          <span className="truncate text-success">已保存到 {task.outputPath}</span>
+                          <>
+                            <span className="truncate text-success">已保存到 {task.outputPath}</span>
+                            {task.verification && (
+                              <span
+                                className={
+                                  task.verification.audioOk && task.verification.metadataOk
+                                    ? 'rounded bg-success/15 px-1.5 py-0.5 text-success'
+                                    : 'rounded bg-warning/15 px-1.5 py-0.5 text-warning'
+                                }
+                                title={task.verification.details.join('\n')}
+                              >
+                                {task.verification.audioOk && task.verification.metadataOk
+                                  ? '已验证 ✓'
+                                  : '验证警告 ⚠'}
+                              </span>
+                            )}
+                          </>
                         ) : (
                           <>
                             <span>速度 {task.speed ?? '--'}</span>

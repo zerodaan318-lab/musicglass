@@ -116,11 +116,17 @@ export function useAppStore() {
             prev.map((x) => (x.id === t.id ? { ...x, status: 'processing', progress: 5 } : x))
           );
           try {
-            const outPath = await runTask(t, outputDir);
+            const res = await runTask(t, outputDir);
             setTasks((prev) =>
               prev.map((x) =>
                 x.id === t.id
-                  ? { ...x, status: 'completed', progress: 100, outputPath: outPath }
+                  ? {
+                      ...x,
+                      status: 'completed',
+                      progress: 100,
+                      outputPath: res.outputPath,
+                      verification: res.verification,
+                    }
                   : x
               )
             );

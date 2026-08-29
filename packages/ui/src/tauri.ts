@@ -3,7 +3,7 @@
  * 在 Tauri 壳内调用真实 Rust IPC；在纯 Vite 预览下动态导入失败则降级为模拟。
  * 这样同一套 UI 既能 `cargo tauri dev` 真运行，也能 `pnpm dev` 单独预览。
  */
-import type { DetectedFile, ConversionTask, Metadata } from '@musicglass/shared';
+import type { DetectedFile, ConversionTask, Metadata, VerificationResult } from '@musicglass/shared';
 
 let tauri: typeof import('@tauri-apps/api') | null = null;
 let invokeFn: ((cmd: string, args?: Record<string, unknown>) => Promise<unknown>) | null = null;
@@ -95,24 +95,37 @@ export async function convertAudio(
   input: string,
   output: string,
   targetFormat: string,
+  verify = true,
   bitrate?: number
-): Promise<void> {
+): Promise<{ outputPath: string; verification?: VerificationResult }> {
   const invoke = await ensureTauri();
-  if (!invoke) return; // 模拟环境无操作
-  await invoke('convert_audio', { input, output, targetFormat, bitrate });
+  if (!invoke) return { outputPath: output }; // 模拟环境无操作
+  const r = (await invoke('convert_audio', {
+    input,
+    output,
+    targetFormat,
+    verify,
+    bitrate,
+  })) as { outputPath: string; verification?: VerificationResult };
+  return {
+    outputPath: r.outputPath,
+    verification: r.verification,
+  };
 }
 
 /** 转换单个任务（供 TaskList 驱动；真实环境会调后端并回传进度事件）
  *  返回输出文件的完整路径，供完成后「打开/定位」使用。 */
-export async function runTask(task: ConversionTask, outputDir: string): Promise<string> {
+export async function runTask(
+  task: ConversionTask,
+  outputDir: string
+): Promise<{ outputPath: string; verification?: VerificationResult }> {
   const invoke = await ensureTauri();
   const outName = `${task.title}.${task.toFormat}`;
   // 统一用反斜杠（Windows 路径规范），避免 explorer / select 定位失败
   const normDir = outputDir.replace(/\//g, '\\');
   const outPath = `${normDir}\\${outName}`;
-  if (!invoke) return outPath; // 模拟环境无操作，仍返回预期路径
-  await convertAudio(task.path ?? '', outPath, task.toFormat);
-  return outPath;
+  if (!invoke) return { outputPath: outPath }; // 模拟环境无操作，仍返回预期路径
+  return await convertAudio(task.path ?? '', outPath, task.toFormat, true);
 }
 
 export async function doctor(): Promise<{ ffmpegAvailable: boolean }> {

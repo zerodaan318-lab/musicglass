@@ -113,26 +113,28 @@
 - 状态管理：`store.tsx`（轻量 `useAppStore`，受控状态，无散落全局变量）；`App.tsx` 侧边栏导航 + 视图切换 + 全局错误层
 - 验证：`pnpm build`（tsc -b && vite build）零错误通过
 
-### Phase 8 — Tauri 桌面壳 🚧 代码完成，待本机链接验证
+### Phase 8 — Tauri 桌面壳 ✅ 完成（本机真机验证通过）
 - 建立 `apps/desktop/src-tauri/`（Tauri 2 桌面壳），把 `packages/ui` 与 `crates/*` 桥接
 - 文件：`Cargo.toml`（脱离根 workspace，path 依赖 crates）、`tauri.conf.json`、`capabilities/default.json`、`build.rs`、`src/main.rs`
-- `main.rs` 实现 6 个 IPC 命令接真实后端（任务书 §7 插件架构，无 if ncm/if qmc）：
+- `main.rs` 实现 IPC 命令接真实后端（任务书 §7 插件架构，无 if ncm/if qmc）：
   - `detect_files` → `detector::detect`；`inspect_audio` → `audio::inspect`
   - `extract_proprietary` → `Plugin::find().extract_audio`（NCM/QMC 解密）
   - `extract_metadata` → `plugin.extract_metadata` / `metadata::read_metadata`
-  - `convert_audio` → `audio::convert`；`doctor` → `audio::ffmpeg_available`
+  - `convert_audio` → 真实转码 + **Metadata 嵌入（铁律二）+ 转后验证（铁律三）**，返回 `ConvertResultDto { outputPath, verification }`
+  - `reveal_file` → 打开输出所在文件夹；`doctor` → `audio::ffmpeg_available`
 - 前端 `tauri.ts` 适配层：动态 `import('@tauri-apps/api')`，**Tauri 内真 invoke、纯 Vite 预览降级模拟**（同一套 UI 双模式）
-- store 改造：`addFilesFromPaths` 走 `detectFiles`（真实+降级），`startConversion` 透传真实路径
-- 图标占位（icons/*.png + icon.ico 由脚本生成）
-- **验证状态（诚实声明）**：
-  - ✅ `cargo check` 通过（Rust 类型检查 + build.rs 配置校验 + capabilities 校验 + frontendDist 校验全过）
-  - ❌ `cargo tauri dev/build` **本机无法链接运行**，缺 MSVC（`cl.exe` 未安装，VS Build Tools 静默安装失败，需管理员）与 WebView2 Runtime（winget 已下架，需官方直链）
-  - 补齐环境后即可 `cargo tauri dev` 真机验证（步骤见 `apps/desktop/README.md`）
+- store 改造：`addFilesFromPaths` 走 `detectFiles`（真实+降级），`startConversion` 透传真实路径并回写验证结果
+- TaskList 已完成项显示「已验证 ✓ / 验证警告 ⚠」徽章（不等价不谎称 Bit-perfect）
+- **本机真机验证（诚实记录）**：
+  - ✅ `cargo tauri dev` 已在本机真运行（MSVC + WebView2 实际可用，之前文档误判为缺环境）
+  - ✅ 拖入 / 转换 / 浏览 / 打开 / 验证 全链路实测通过
+  - ✅ NCM→MP3、FLAC→MP3 等路径验证 metadata 嵌入 + 验证徽章正常
 - cargo-tauri CLI 已装（`v2.11.4`，装在 D:\Hermes\mg-rust）
+- **遗留**：EXE 打包（nsis 安装包 + zip 便携包）属 Phase 8 末尾，尚未做，见下方待完成
 
 ## 待完成
-- 补齐 MSVC + WebView2 后，本机验证 `cargo tauri dev` 真运行（接真实 detect/convert）
 - Phase 8 EXE 打包（nsis 安装包 + zip 便携包，目标 §8）
+- Phase 9 ~ Phase 11（见 `PROJECT_PLAN.md`）
 - Phase 9 ~ Phase 11（见 `PROJECT_PLAN.md`）
 
 ## 已知问题

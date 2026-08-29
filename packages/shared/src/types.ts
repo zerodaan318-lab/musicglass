@@ -103,6 +103,16 @@ export interface ConversionTask {
   error?: AppErrorView;
   /** 转换完成后的输出文件完整路径（供「打开/定位」使用） */
   outputPath?: string;
+  /** 转换后验证结果（任务书铁律三：转完必须验证） */
+  verification?: VerificationResult;
+}
+
+/** 转换后验证结果（音频参数 + 元数据 + 封面对账） */
+export interface VerificationResult {
+  audioOk: boolean;
+  metadataOk: boolean;
+  coverOk: boolean;
+  details: string[];
 }
 
 /** 质量预设（任务书 原则一） */

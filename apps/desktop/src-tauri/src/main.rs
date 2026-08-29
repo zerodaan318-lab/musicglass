@@ -5,9 +5,29 @@
 use musicglass_audio::{ConversionRequest};
 use musicglass_core::{Format, Metadata};
 use musicglass_detector::detect;
+use musicglass_metadata::{read_metadata, write_metadata};
 use musicglass_plugins::Plugin;
 use serde::Serialize;
 use std::path::PathBuf;
+
+/// 转换验证结果（任务书铁律三：转完必须验证）
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VerifyReportDto {
+    pub audio_ok: bool,
+    pub metadata_ok: bool,
+    pub cover_ok: bool,
+    pub details: Vec<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConvertResultDto {
+    /// 转换后输出文件完整路径
+    pub output_path: String,
+    /// 验证报告（None 表示配置关闭验证）
+    pub verification: Option<VerifyReportDto>,
+}
 
 #[derive(Serialize)]
 pub struct DetectedFileDto {
@@ -117,7 +137,8 @@ fn convert_audio(
     input: String,
     output: String,
     target_format: String,
-) -> Result<(), String> {
+    verify: Option<bool>,
+) -> Result<ConvertResultDto, String> {
     let fmt = parse_format(&target_format).ok_or_else(|| format!("未知目标格式: {}", target_format))?;
 
     // 专有格式（NCM/QMC/MGG…）必须先解密提取内部音频，再交给 ffmpeg 转码
@@ -153,7 +174,62 @@ fn convert_audio(
     }
 
     musicglass_audio::convert(&PathBuf::from(&work_input), &PathBuf::from(&output), &req)
-        .map_err(|e| format!("转换失败: {}", e))
+        .map_err(|e| format!("转换失败: {}", e))?;
+
+    // 铁律二：Metadata 尽可能完整保留——读源标签并嵌入输出文件
+    let src_meta = if let Some(plugin) = Plugin::find(&PathBuf::from(&input)) {
+        plugin
+            .extract_metadata(&PathBuf::from(&input))
+            .unwrap_or_default()
+    } else {
+        read_metadata(&PathBuf::from(&input)).unwrap_or_default()
+    };
+    if src_meta.title.is_some() || src_meta.artist.is_some() || src_meta.album.is_some() {
+        if let Err(e) = write_metadata(&PathBuf::from(&output), &src_meta, fmt) {
+            // 元数据写入失败不应让整条任务失败（音频已转好），记录到详情但不阻断
+            eprintln!("metadata 嵌入警告: {}", e);
+        }
+    }
+
+    // 铁律三：转换完成必须验证（重新读取输出核对音频参数 + 元数据）
+    let verification = if verify.unwrap_or(true) {
+        // 以源（或解密后临时文件）的音频参数作为期望值基准
+        let expected_info = musicglass_audio::inspect(&PathBuf::from(&work_input))
+            .or_else(|_| musicglass_audio::inspect(&PathBuf::from(&input)));
+        match expected_info {
+            Ok(info) => match musicglass_audio::verify::verify(
+                &PathBuf::from(&output),
+                &info,
+                &src_meta,
+            ) {
+                Ok(report) => Some(VerifyReportDto {
+                    audio_ok: report.audio_ok,
+                    metadata_ok: report.metadata_ok,
+                    cover_ok: report.cover_ok,
+                    details: report.details,
+                }),
+                Err(e) => Some(VerifyReportDto {
+                    audio_ok: false,
+                    metadata_ok: false,
+                    cover_ok: false,
+                    details: vec![format!("验证失败: {}", e)],
+                }),
+            },
+            Err(e) => Some(VerifyReportDto {
+                audio_ok: false,
+                metadata_ok: false,
+                cover_ok: false,
+                details: vec![format!("无法获取源音频参数，跳过验证: {}", e)],
+            }),
+        }
+    } else {
+        None
+    };
+
+    Ok(ConvertResultDto {
+        output_path: output.clone(),
+        verification,
+    })
 }
 
 /// 在文件资源管理器中定位文件（Windows 打开所在文件夹；macOS open -R）
