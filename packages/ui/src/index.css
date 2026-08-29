@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== MusicGlass 设计系统 =====
+   玻璃拟态 (Glassmorphism) + 深色优先 + CSS 变量驱动深浅色（任务书 §27, §34）
+   毛玻璃不得影响：可读性 / 按钮识别 / 文字对比度 / 操作效率（§28）
+*/
+
+:root {
+  /* Dark（默认） */
+  --mg-bg: 13 16 23;
+  --mg-surface: 30 34 45;
+  --mg-surface-strong: 42 47 61;
+  --mg-border: 255 255 255;
+  --mg-text: 233 237 244;
+  --mg-muted: 148 156 171;
+  --mg-accent: 124 142 255;
+  --mg-accent-soft: 124 142 255;
+  --mg-danger: 255 110 110;
+  --mg-success: 96 205 150;
+  --mg-warning: 245 190 90;
+  --mg-glass-bg: 255 255 255;
+  --mg-glass-alpha: 0.06;
+  --mg-app-gradient: radial-gradient(
+      1200px 800px at 15% -10%,
+      rgba(124, 142, 255, 0.18),
+      transparent 60%
+    ),
+    radial-gradient(900px 700px at 110% 10%, rgba(96, 205, 150, 0.12), transparent 55%),
+    linear-gradient(180deg, #0d1017 0%, #0a0c12 100%);
+}
+
+:root[data-theme='light'] {
+  --mg-bg: 240 242 247;
+  --mg-surface: 255 255 255;
+  --mg-surface-strong: 245 247 251;
+  --mg-border: 15 23 42;
+  --mg-text: 23 28 38;
+  --mg-muted: 92 102 120;
+  --mg-accent: 79 95 230;
+  --mg-accent-soft: 79 95 230;
+  --mg-danger: 210 60 60;
+  --mg-success: 34 150 100;
+  --mg-warning: 200 140 20;
+  --mg-glass-bg: 255 255 255;
+  --mg-glass-alpha: 0.55;
+  --mg-app-gradient: radial-gradient(
+      1200px 800px at 15% -10%,
+      rgba(79, 95, 230, 0.12),
+      transparent 60%
+    ),
+    radial-gradient(900px 700px at 110% 10%, rgba(34, 150, 100, 0.1), transparent 55%),
+    linear-gradient(180deg, #f0f2f7 0%, #e7eaf1 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+  color: rgb(var(--mg-text));
+  background: rgb(var(--mg-bg));
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* 应用背景：渐变 + 极轻噪点感（用模糊光斑模拟） */
+.app-bg {
+  background-image: var(--mg-app-gradient);
+  background-attachment: fixed;
+}
+
+/* 玻璃卡片：毛玻璃必须保证对比度（§28 约束） */
+.glass {
+  background-color: rgb(var(--mg-glass-bg) / var(--mg-glass-alpha));
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgb(var(--mg-border) / 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.glass-strong {
+  background-color: rgb(var(--mg-glass-bg) / calc(var(--mg-glass-alpha) + 0.04));
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgb(var(--mg-border) / 0.14);
+}
+
+/* 可访问焦点 */
+:focus-visible {
+  outline: 2px solid rgb(var(--mg-accent));
+  outline-offset: 2px;
+}
+
+/* 细滚动条 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--mg-muted) / 0.3);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--mg-muted) / 0.5);
+}

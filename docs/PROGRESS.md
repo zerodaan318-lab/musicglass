@@ -96,8 +96,26 @@
 - Metadata 真实读写（Phase 3）
 - 任务系统：队列/并发/取消重试/SQLite 历史 + 端到端转换验证（Phase 4）
 
+### Phase 7 — UI（玻璃拟态前端）🚧 进行中
+- 技术栈（任务书 §40/§44）：React 18 + TypeScript + Vite + Tailwind CSS 3 + Framer Motion 11；桌面壳后续 Tauri 2（`apps/desktop`，Phase 8）
+- 目录：`packages/ui`（React 前端）、`packages/shared`（前后端共享 TS 类型，与 Rust `core` serde 结构对齐）
+- 设计系统（`packages/ui/src/index.css` + `tailwind.config.js`）：
+  - 玻璃拟态 `glass`/`glass-strong` 类（blur 18~24px + saturate），CSS 变量驱动，**保证对比度/按钮识别/文字可读性**（任务书 §28 约束）
+  - 深色优先 + `dark/light/system` 三态主题（`theme.tsx` 监听 system 变化）
+  - 主题色全部走 Tailwind 语义色（`bg/surface/text/accent/...`）
+- 公共组件（`packages/ui/src/components/`）：`GlassCard`、`Button`、`ProgressBar`、`ErrorCard`（人类可读 + 可折叠 Technical Details，任务书 §32）、`Sidebar`、`Icon`（内联 SVG，零额外依赖）
+- 页面（任务书 §27-§38，组件化拆分，禁止单文件塞全部，§45）：
+  - `HomePage`（拖拽/Add Files/Folder + 支持格式列表，§28）
+  - `ImportSummary`（文件数/Supported/NCM/QMC 计数/总时长，§29）
+  - `ConvertPage`（Input/Output Format/Quality/Metadata/Cover/Lyrics/Output Folder/Template/Start；有损转换强制确认，原则一，§30）
+  - `TaskList`（Cover/Title/Artist/格式箭头/进度/速度/剩余/Pause/Cancel，§31）
+  - `SettingsPage`（General/Appearance/Conversion/Output/Metadata/Performance/Advanced/About，§33-§37）
+- 状态管理：`store.tsx`（轻量 `useAppStore`，受控状态，无散落全局变量）；`App.tsx` 侧边栏导航 + 视图切换 + 全局错误层
+- 待完成：子代理并行产出 5 个页面文件 → 串联验证 → `pnpm install` + 类型检查/构建
+
 ## 待完成
-- Phase 4 ~ Phase 11（见 `PROJECT_PLAN.md`）
+- Phase 7 收尾（页面串联 + 构建验证）
+- Phase 8 ~ Phase 11（见 `PROJECT_PLAN.md`）
 
 ## 已知问题
 - `lofty` 的 `MimeType` 枚举无 Webp 变体，封面写 webp 时经 `MimeType::from_str` 落入 `Unknown` 分支（数据保留，mime 标记为 image/webp）；读取时也能正确取回 bytes。功能可用，仅类型枚举不显式标注 webp。
