@@ -5,7 +5,7 @@
 ## 当前状态
 
 - **版本**：v0.0.3（开发初期）
-- **当前 Phase**：Phase 4 ✅ 完成，准备进入 Phase 5（NCM 插件）
+- **当前 Phase**：Phase 5 ✅ 完成（NCM 插件 + 格式研究），准备进入 Phase 6（QMC 插件）
 - **最近 Commit**：见下方 Git 状态
 - **GitHub**：✅ 已连接 `zerodaan318-lab/musicglass`（Private），main 已同步
 
@@ -63,6 +63,18 @@
   - `Format::from_codec()` 映射 ffmpeg codec 名
 - 集成测试 `audio/tests/e2e.rs`：生成 FLAC → 写 Metadata → 转 MP3 320k → verify → history 写入查询，全链路通过
 - 全量测试：core 4 + detector 4 + audio 2(e2e+unit) + metadata 7 + task-manager 6 = **23 个全部通过**
+
+### Phase 5 — NCM 插件 ✅ 完成
+- `crates/plugins/ncm/src/decrypt.rs`：clean-room 重新实现的 NCM 解密
+  - 二进制布局解析：`CTENFDAM` magic + gap → RC4 Key Segment(XOR 0x64 → AES-128-ECB CORE_KEY → 去"neteasecloudmusic") → Metadata Segment(XOR 0x63 → 去"163 key(Don't modify):" → Base64 → AES-128-ECB META_KEY → 去"music:" → JSON) → CRC32+gap → Cover Segment → 音频(自定义 RC4 流加密)
+  - 自定义 RC4 PRGA：`keystream[t] = S[(S[t+1] + S[(S[t+1]+t+1)&0xff])&0xff]`，无状态可分块解密
+  - 依赖：`aes` 0.8 + `cipher`(block-padding) + `base64` 0.22 + `block-padding` 0.3
+- `crates/plugins/ncm/src/metadata.rs`：NCM JSON → 统一 Metadata 模型映射 + 内嵌音频格式嗅探(detect_by_magic)
+- `crates/plugins/ncm/src/lib.rs`：实现 `MusicContainer` trait 全部 5 个方法（can_handle / inspect / extract_audio / extract_metadata / extract_cover）
+- `docs/FORMAT_RESEARCH_NCM.md`：格式结构、解密算法、字段映射、研究来源与 License 合规（任务书 §8 强制要求）
+- `crates/plugins/ncm/tests/metadata.rs`：6 个单元测试（格式嗅探 + metadata 映射）全过
+- **诚实声明**：尚未用真实 `.ncm` 文件做端到端解密验证，待用户提供合法拥有的样本后补充（文档已记录）
+- 全量构建通过，新增 6 测试，总计 **29 个测试全过**
 
 ## 已完成
 - 项目脚手架、Git/GitHub 初始化（Phase 0）

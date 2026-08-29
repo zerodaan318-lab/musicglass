@@ -7,3 +7,8 @@ license.workspace = true
 [dependencies]
 musicglass-core = { path = "../../core" }
 serde.workspace = true
+serde_json.workspace = true
+aes.workspace = true
+cipher = { version = "0.4", features = ["block-padding"] }
+block-padding = "0.3"
+base64.workspace = true
