@@ -420,6 +420,7 @@ dependencies = [
 name = "musicglass-plugins-qmc"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "musicglass-core",
  "musicglass-metadata",
  "serde",
