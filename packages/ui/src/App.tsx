@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect } from 'react';
 import { useAppStore, type View } from './store';
 import { useTheme } from './theme';
 import { Sidebar } from './components/Sidebar';
@@ -39,54 +39,79 @@ export default function App() {
   const view: View = store.view;
   const hasFiles = store.files.length > 0;
 
+  // 原生文件拖放（Tauri WebView2 不会把系统文件拖放传给 HTML onDrop，
+  // 必须通过 getCurrentWebview().onDragDropEvent 接收，否则拖入无反应）
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    (async () => {
+      try {
+        const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+        const wv = getCurrentWebview();
+        unlisten = await wv.onDragDropEvent((event) => {
+          if (event.payload.type !== 'drop') return; // 仅处理文件落下的瞬间
+          const paths = event.payload.paths;
+          if (paths && paths.length > 0) {
+            store.addFilesFromPaths(paths);
+          }
+        });
+      } catch {
+        // 非 Tauri 环境（纯预览）忽略，走 HomePage 的 HTML onDrop 降级
+      }
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [store]);
+
   return (
     <div className="app-bg flex h-full w-full text-text">
-      <Sidebar view={view} onNav={store.setView} taskCount={store.tasks.length} />
+      <Sidebar view={view} onNav={store.setView} taskCount={store.activeTaskCount} />
 
       <main className="flex-1 overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={view}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="h-full overflow-y-auto px-8 py-6"
-          >
-            {view === 'home' && (
-              <div className="mx-auto max-w-4xl space-y-6">
-                <HomePage onAddPaths={store.addFilesFromPaths} />
-                {store.summary && <ImportSummary summary={store.summary} files={store.files} />}
-              </div>
-            )}
-
-            {view === 'convert' && hasFiles && (
-              <div className="mx-auto max-w-4xl">
-                <ConvertPage files={store.files} onStart={store.startConversion} />
-              </div>
-            )}
-
-            {view === 'convert' && !hasFiles && (
-              <EmptyHint onGo={() => store.setView('home')} />
-            )}
-
-            {view === 'tasks' && (
-              <div className="mx-auto max-w-4xl">
-                <TaskList
-                  tasks={store.tasks}
-                  onPause={store.pauseTask}
-                  onCancel={store.cancelTask}
+        <div
+          key={view}
+          className="h-full overflow-y-auto px-8 py-6"
+        >
+          {view === 'home' && (
+            <div className="mx-auto max-w-4xl space-y-6">
+              <HomePage onAddPaths={store.addFilesFromPaths} />
+              {store.summary && (
+                <ImportSummary
+                  summary={store.summary}
+                  files={store.files}
+                  onRemove={store.removeFile}
+                  onClear={store.clearFiles}
                 />
-              </div>
-            )}
+              )}
+            </div>
+          )}
 
-            {view === 'settings' && (
-              <div className="mx-auto max-w-4xl">
-                <SettingsPage settings={store.settings} onChange={store.updateSettings} />
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+          {view === 'convert' && hasFiles && (
+            <div className="mx-auto max-w-4xl">
+              <ConvertPage files={store.files} onStart={store.startConversion} />
+            </div>
+          )}
+
+          {view === 'convert' && !hasFiles && (
+            <EmptyHint onGo={() => store.setView('home')} />
+          )}
+
+          {view === 'tasks' && (
+            <div className="mx-auto max-w-4xl">
+              <TaskList
+                tasks={store.tasks}
+                onPause={store.pauseTask}
+                onCancel={store.cancelTask}
+              />
+            </div>
+          )}
+
+          {view === 'settings' && (
+            <div className="mx-auto max-w-4xl">
+              <SettingsPage settings={store.settings} onChange={store.updateSettings} />
+            </div>
+          )}
+        </div>
       </main>
 
       <GlobalErrors errors={store.errors} onClose={store.clearErrors} />

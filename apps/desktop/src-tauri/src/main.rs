@@ -117,20 +117,73 @@ fn convert_audio(
     input: String,
     output: String,
     target_format: String,
-    bitrate: Option<u64>,
 ) -> Result<(), String> {
     let fmt = parse_format(&target_format).ok_or_else(|| format!("未知目标格式: {}", target_format))?;
+
+    // 专有格式（NCM/QMC/MGG…）必须先解密提取内部音频，再交给 ffmpeg 转码
+    let work_input = if let Some(plugin) = Plugin::find(&PathBuf::from(&input)) {
+        let stream = plugin
+            .extract_audio(&PathBuf::from(&input))
+            .map_err(|e| format!("解密失败: {}", e))?;
+        let ext = match stream.codec.as_str() {
+            "flac" => "flac",
+            "mp3" => "mp3",
+            "aac" => "m4a",
+            "alac" => "m4a",
+            _ => "dat",
+        };
+        let tmp = std::env::temp_dir().join(format!("musicglass_{}.{}", std::process::id(), ext));
+        std::fs::write(&tmp, &stream.data).map_err(|e| format!("解密临时写出失败: {}", e))?;
+        tmp.to_string_lossy().into_owned()
+    } else {
+        input.clone()
+    };
+
     let req = ConversionRequest {
         target_format: fmt,
-        bitrate,
+        bitrate: None,
         sample_rate: None,
         bit_depth: None,
         metadata: None,
     };
-    musicglass_audio::convert(&PathBuf::from(&input), &PathBuf::from(&output), &req).map_err(|e| e.to_string())
+    // 确保输出目录存在（否则 ffmpeg 写入失败）；目录创建失败要明确报错，避免假成功
+    if let Some(parent) = PathBuf::from(&output).parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("无法创建输出目录 {}: {}", parent.display(), e))?;
+    }
+
+    musicglass_audio::convert(&PathBuf::from(&work_input), &PathBuf::from(&output), &req)
+        .map_err(|e| format!("转换失败: {}", e))
 }
 
-/// 健康检查：FFmpeg 是否可用（任务书 原则 / 启动自检）
+/// 在文件资源管理器中定位文件（Windows 打开所在文件夹；macOS open -R）
+#[tauri::command]
+fn reveal_file(path: String) -> Result<(), String> {
+    // 统一分隔符为反斜杠
+    let norm = path.replace('/', "\\");
+    // 取文件所在目录
+    let folder = std::path::Path::new(&norm)
+        .parent()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|| norm.clone());
+    #[cfg(windows)]
+    {
+        // 直接打开文件所在文件夹（避免 OneDrive 重解析点下 /select 跳转到文档库的怪癖）
+        std::process::Command::new("explorer")
+            .arg(&folder)
+            .spawn()
+            .map_err(|e| format!("无法打开资源管理器: {}", e))?;
+    }
+    #[cfg(not(windows))]
+    {
+        std::process::Command::new("open")
+            .arg("-R")
+            .arg(&norm)
+            .spawn()
+            .map_err(|e| format!("无法打开文件管理器: {}", e))?;
+    }
+    Ok(())
+}
 #[tauri::command]
 fn doctor() -> Result<serde_json::Value, String> {
     Ok(serde_json::json!({
@@ -156,6 +209,8 @@ fn parse_format(s: &str) -> Option<Format> {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             detect_file,
             detect_files,
@@ -163,7 +218,8 @@ fn main() {
             extract_proprietary,
             extract_metadata,
             convert_audio,
-            doctor
+            doctor,
+            reveal_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running MusicGlass");

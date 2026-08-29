@@ -76,6 +76,7 @@ body {
 
 /* 应用背景：渐变 + 极轻噪点感（用模糊光斑模拟） */
 .app-bg {
+  background-color: rgb(var(--mg-bg));
   background-image: var(--mg-app-gradient);
   background-attachment: fixed;
 }
@@ -83,8 +84,8 @@ body {
 /* 玻璃卡片：毛玻璃必须保证对比度（§28 约束） */
 .glass {
   background-color: rgb(var(--mg-glass-bg) / var(--mg-glass-alpha));
-  backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
   border: 1px solid rgb(var(--mg-border) / 0.1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }

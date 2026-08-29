@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { GlassCard } from '@/components/GlassCard';
 import { Button } from '@/components/Button';
 import { IconPlus, IconFolder, IconMusic } from '@/components/Icon';
+import { openFilesDialog, openFolderDialog, isTauri } from '@/tauri';
 
 const SUPPORTED_LABELS = ['MP3', 'FLAC', 'WAV', 'M4A', 'NCM', 'QMC', '...'];
 
@@ -22,6 +23,8 @@ const samplePath = (name: string) => `C:\\Users\\User\\Music\\${name}`;
 
 export function HomePage({ onAddPaths }: { onAddPaths: (paths: string[]) => void }) {
   const [dragOver, setDragOver] = useState(false);
+  // Tauri 环境的原生拖放由 App 层的 onDragDropEvent 统一处理，这里禁用 HTML 拖放避免重复添加
+  const htmlDndEnabled = !isTauri();
 
   const handleDrop = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
@@ -29,14 +32,34 @@ export function HomePage({ onAddPaths }: { onAddPaths: (paths: string[]) => void
       setDragOver(false);
       const paths = Array.from(e.dataTransfer.files).map(
         (f) => (f as any).path || samplePath(f.name)
-      ); // Tauri 下为真实路径；浏览器降级用 name 拼
+      ); // 浏览器降级用 name 拼
       if (paths.length === 0) return;
       onAddPaths(paths);
     },
     [onAddPaths]
   );
 
-  // 演示：生成示例路径（真实环境由文件对话框/拖拽提供）
+  // Tauri 模式下打开真实文件对话框；纯前端预览下降级为模拟样本
+  const handleAddFiles = async () => {
+    const paths = await openFilesDialog(true);
+    if (paths && paths.length > 0) {
+      onAddPaths(paths);
+      return;
+    }
+    if (paths === null) simulateAdd(6, true); // 非 Tauri 环境降级
+  };
+
+  const handleAddFolder = async () => {
+    const dirs = await openFolderDialog();
+    if (dirs && dirs.length > 0) {
+      // 真实环境：把目录路径交给检测逻辑（detector 会扫描目录内文件）
+      onAddPaths(dirs);
+      return;
+    }
+    if (dirs === null) simulateAdd(12, true);
+  };
+
+  // 仅在非 Tauri（纯前端预览）下降级使用，生成示例路径供 mock 检测
   const simulateAdd = (count: number, withProprietary = false) => {
     const paths: string[] = [];
     for (let i = 0; i < count; i++) {
@@ -54,7 +77,7 @@ export function HomePage({ onAddPaths }: { onAddPaths: (paths: string[]) => void
     <div className="space-y-6">
       <div className="text-center">
         <motion.h2
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 1, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-3xl font-semibold tracking-tight text-text"
         >
@@ -64,12 +87,12 @@ export function HomePage({ onAddPaths }: { onAddPaths: (paths: string[]) => void
       </div>
 
       <motion.div
-        onDragOver={(e) => {
+        onDragOver={htmlDndEnabled ? (e) => {
           e.preventDefault();
           setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
+        } : undefined}
+        onDragLeave={htmlDndEnabled ? () => setDragOver(false) : undefined}
+        onDrop={htmlDndEnabled ? handleDrop : undefined}
         animate={{ scale: dragOver ? 1.01 : 1 }}
         className={`relative grid place-items-center rounded-2xl border-2 border-dashed p-12 transition-colors ${
           dragOver ? 'border-accent bg-accent/10' : 'border-border/20 bg-surface/30'
@@ -82,10 +105,10 @@ export function HomePage({ onAddPaths }: { onAddPaths: (paths: string[]) => void
           <p className="text-lg font-medium text-text">Drop music files here</p>
           <p className="mt-1 text-sm text-muted">支持拖拽多个文件，或点击下方按钮</p>
           <div className="mt-6 flex items-center justify-center gap-3">
-            <Button icon={<IconPlus />} onClick={() => simulateAdd(6, true)}>
+            <Button icon={<IconPlus />} onClick={handleAddFiles}>
               Add Files
             </Button>
-            <Button variant="secondary" icon={<IconFolder />} onClick={() => simulateAdd(12, true)}>
+            <Button variant="secondary" icon={<IconFolder />} onClick={handleAddFolder}>
               Add Folder
             </Button>
           </div>
@@ -93,7 +116,7 @@ export function HomePage({ onAddPaths }: { onAddPaths: (paths: string[]) => void
       </motion.div>
 
       <GlassCard className="text-center">
-        <p className="mb-3 text-sm font-medium text-muted">Supported</p>
+        <p className="mb-3 text-sm font-medium text-muted">支持的格式</p>
         <div className="flex flex-wrap justify-center gap-2">
           {SUPPORTED_LABELS.map((f) => (
             <span

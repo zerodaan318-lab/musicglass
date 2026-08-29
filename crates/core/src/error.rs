@@ -7,38 +7,38 @@ use std::path::PathBuf;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
-    #[error("io error on {path}: {source}")]
+    #[error("文件读写错误（路径 {path}）：{source}")]
     Io {
         path: PathBuf,
         #[source]
         source: std::io::Error,
     },
 
-    #[error("format not recognized: {0}")]
+    #[error("无法识别的文件格式：{0}")]
     UnsupportedFormat(String),
 
-    #[error("file too large to process safely: {bytes} bytes")]
+    #[error("文件过大，超出安全处理上限（{bytes} 字节）")]
     FileTooLarge { bytes: u64 },
 
-    #[error("path is not safe (traversal or invalid): {0}")]
+    #[error("路径不安全（可能为越界访问或非法字符）：{0}")]
     UnsafePath(String),
 
-    #[error("ffmpeg execution failed: {0}")]
+    #[error("FFmpeg 执行失败：{0}")]
     FfmpegFailed(String),
 
-    #[error("metadata error: {reason}")]
+    #[error("元数据错误：{reason}")]
     Metadata { reason: String },
 
-    #[error("metadata field could not be mapped: {field}")]
+    #[error("元数据字段无法映射：{field}")]
     MetadataMapping { field: String },
 
-    #[error("plugin error ({plugin}): {reason}")]
+    #[error("插件错误（{plugin}）：{reason}")]
     Plugin { plugin: String, reason: String },
 
-    #[error("additional key required to process this file: {reason}")]
+    #[error("处理此文件需要额外的密钥：{reason}")]
     KeyRequired { reason: String },
 
-    #[error("verification failed: {reason}")]
+    #[error("校验失败：{reason}")]
     Verification { reason: String },
 
     #[error("{0}")]
@@ -68,17 +68,17 @@ impl AppError {
     /// Human-readable suggestion shown in the UI error panel.
     pub fn suggestion(&self) -> &'static str {
         match self {
-            AppError::Io { .. } => "Check the file is readable and not locked by another program.",
-            AppError::UnsupportedFormat(_) => "The file may be corrupted or use an unsupported structure.",
-            AppError::FileTooLarge { .. } => "Try processing fewer/larger files separately, or increase the temp space.",
-            AppError::UnsafePath(_) => "The file path contains invalid characters or traversal attempts.",
-            AppError::FfmpegFailed(_) => "Reinstall or update FFmpeg, then retry the conversion.",
-            AppError::Metadata { .. } => "The metadata could not be read or written; the file may be corrupt.",
-            AppError::MetadataMapping { .. } => "Some metadata could not be written to the target format.",
-            AppError::Plugin { .. } => "The format plugin failed to parse the container. The file may be unsupported.",
-            AppError::KeyRequired { .. } => "Provide the required key for this proprietary format to continue.",
-            AppError::Verification { .. } => "The output did not match expectations; the source may be corrupted.",
-            AppError::Other(_) => "Unexpected error. Check the logs for technical details.",
+            AppError::Io { .. } => "请确认文件可读且未被其他程序占用。",
+            AppError::UnsupportedFormat(_) => "文件可能已损坏，或采用了不支持的结构。",
+            AppError::FileTooLarge { .. } => "建议分批处理较大文件，或清理临时空间后重试。",
+            AppError::UnsafePath(_) => "文件路径包含非法字符或越界访问尝试。",
+            AppError::FfmpegFailed(_) => "请重新安装或更新 FFmpeg 后重试转换。",
+            AppError::Metadata { .. } => "无法读取或写入元数据，文件可能已损坏。",
+            AppError::MetadataMapping { .. } => "部分元数据无法写入目标格式。",
+            AppError::Plugin { .. } => "格式插件解析容器失败，该文件可能不被支持。",
+            AppError::KeyRequired { .. } => "请提供该专有格式所需的密钥以继续。",
+            AppError::Verification { .. } => "输出结果与预期不符，源文件可能已损坏。",
+            AppError::Other(_) => "发生未预期的错误，请查看日志获取技术详情。",
         }
     }
 }

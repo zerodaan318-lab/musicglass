@@ -101,6 +101,8 @@ export interface ConversionTask {
   timeRemainingSec?: number;
   status: TaskStatus;
   error?: AppErrorView;
+  /** 转换完成后的输出文件完整路径（供「打开/定位」使用） */
+  outputPath?: string;
 }
 
 /** 质量预设（任务书 原则一） */
@@ -151,7 +153,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  appearance: 'system',
+  appearance: 'dark',
   conversion: { defaultQuality: 'lossless', confirmLossy: true },
   output: {
     defaultDirectory: '',

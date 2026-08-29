@@ -13,7 +13,12 @@ export function applyTheme(mode: AppearanceMode) {
     }
     return mode;
   };
-  root.setAttribute('data-theme', resolve());
+  const next = resolve();
+  if (root.getAttribute('data-theme') === next) return;
+  root.setAttribute('data-theme', next);
+  // 强制同步重绘：WebView2 在 data-theme 切换后偶发复合层/backdrop-filter 不刷新，
+  // 导致浅色主题下玻璃卡片与背景同色而整页看似空白。触发一次 reflow 修正。
+  void document.body.offsetHeight;
 }
 
 export function useTheme(mode: AppearanceMode) {

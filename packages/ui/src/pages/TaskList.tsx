@@ -10,6 +10,7 @@ import type { ConversionTask, TaskStatus } from '@musicglass/shared';
 import { GlassCard } from '@/components/GlassCard';
 import { Button } from '@/components/Button';
 import { ProgressBar } from '@/components/ProgressBar';
+import { revealFile } from '@/tauri';
 import {
   IconAlert,
   IconCheck,
@@ -17,6 +18,7 @@ import {
   IconPause,
   IconPlay,
   IconX,
+  IconFolder,
 } from '@/components/Icon';
 import { formatDuration, formatLabel } from '@/lib/format';
 
@@ -79,7 +81,7 @@ export function TaskList({ tasks, onPause, onCancel, onResume }: TaskListProps) 
             <motion.div
               key={task.id}
               layout
-              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              initial={{ opacity: 1, y: 8, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
               transition={{ type: 'spring', stiffness: 320, damping: 28 }}
@@ -139,39 +141,56 @@ export function TaskList({ tasks, onPause, onCancel, onResume }: TaskListProps) 
                     /* 速度 / 剩余时间 + 操作按钮 */
                     <div className="mt-3 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-4 text-xs text-muted">
-                        <span>速度 {task.speed ?? '--'}</span>
-                        <span>剩余 {formatDuration(task.timeRemainingSec)}</span>
+                        {task.status === 'completed' && task.outputPath ? (
+                          <span className="truncate text-success">已保存到 {task.outputPath}</span>
+                        ) : (
+                          <>
+                            <span>速度 {task.speed ?? '--'}</span>
+                            <span>剩余 {formatDuration(task.timeRemainingSec)}</span>
+                          </>
+                        )}
                       </div>
-                      {isActive && (
-                        <div className="flex shrink-0 items-center gap-2">
-                          {isProcessing && (
-                            <Button
-                              variant="ghost"
-                              icon={<IconPause />}
-                              onClick={() => onPause(task.id)}
-                            >
-                              暂停
-                            </Button>
-                          )}
-                          {isPending && onResume && (
-                            <Button
-                              variant="ghost"
-                              icon={<IconPlay />}
-                              onClick={() => onResume(task.id)}
-                            >
-                              开始
-                            </Button>
-                          )}
+                      <div className="flex shrink-0 items-center gap-2">
+                        {task.status === 'completed' && task.outputPath && (
                           <Button
                             variant="ghost"
-                            className="text-danger hover:bg-danger/10 hover:text-danger"
-                            icon={<IconX />}
-                            onClick={() => onCancel(task.id)}
+                            icon={<IconFolder />}
+                            onClick={() => revealFile(task.outputPath!)}
                           >
-                            取消
+                            打开
                           </Button>
-                        </div>
-                      )}
+                        )}
+                        {isActive && (
+                          <>
+                            {isProcessing && (
+                              <Button
+                                variant="ghost"
+                                icon={<IconPause />}
+                                onClick={() => onPause(task.id)}
+                              >
+                                暂停
+                              </Button>
+                            )}
+                            {isPending && onResume && (
+                              <Button
+                                variant="ghost"
+                                icon={<IconPlay />}
+                                onClick={() => onResume(task.id)}
+                              >
+                                开始
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              className="text-danger hover:bg-danger/10 hover:text-danger"
+                              icon={<IconX />}
+                              onClick={() => onCancel(task.id)}
+                            >
+                              取消
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

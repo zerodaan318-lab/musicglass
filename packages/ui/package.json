@@ -12,6 +12,8 @@
   "dependencies": {
     "@musicglass/shared": "workspace:*",
     "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-dialog": "^2.7.2",
+    "@tauri-apps/plugin-shell": "^2.3.5",
     "framer-motion": "^11.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

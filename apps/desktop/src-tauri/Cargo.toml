@@ -11,6 +11,8 @@ edition = "2021"
 # 与 workspace 解耦：Tauri 二进制独立编译，引用 workspace 的 crates
 [dependencies]
 tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

@@ -9,6 +9,8 @@
     "core:event:default",
     "core:path:default",
     "core:webview:default",
-    "core:app:default"
+    "core:app:default",
+    "dialog:default",
+    "shell:default"
   ]
 }

@@ -12,7 +12,7 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import type { DetectedFile, ImportSummary as ImportSummaryData } from '@musicglass/shared';
 import { GlassCard } from '@/components/GlassCard';
-import { IconAlert, IconCheck, IconMusic } from '@/components/Icon';
+import { IconAlert, IconCheck, IconMusic, IconX } from '@/components/Icon';
 import { formatBytes, formatDuration, formatLabel } from '@/lib/format';
 
 interface ImportSummaryProps {
@@ -20,6 +20,10 @@ interface ImportSummaryProps {
   summary: ImportSummaryData;
   /** 已导入的文件明细，用于专有格式归类与预览列表 */
   files: DetectedFile[];
+  /** 删除单个文件 */
+  onRemove?: (id: string) => void;
+  /** 清空全部导入 */
+  onClear?: () => void;
 }
 
 /** 预览列表最多显示的条数，避免长列表拖慢首页 */
@@ -58,7 +62,7 @@ function Stat({
   return (
     <motion.div
       className="rounded-xl2 bg-surface-strong/40 px-4 py-4 text-center"
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 1, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.3, ease: 'easeOut' }}
     >
@@ -68,7 +72,7 @@ function Stat({
   );
 }
 
-export function ImportSummary({ summary, files }: ImportSummaryProps) {
+export function ImportSummary({ summary, files, onRemove, onClear }: ImportSummaryProps) {
   const { proprietaryStats, standardStats, totalBytes, preview, restCount } = useMemo(() => {
     const proprietary = new Map<string, number>();
     const standard = new Map<string, number>();
@@ -96,7 +100,7 @@ export function ImportSummary({ summary, files }: ImportSummaryProps) {
   return (
     <motion.div
       className="mx-auto w-full max-w-3xl"
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 1, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
     >
@@ -107,13 +111,24 @@ export function ImportSummary({ summary, files }: ImportSummaryProps) {
             <IconMusic width={18} height={18} className="text-accent" />
             导入概览
           </div>
-          <span className="text-xs text-muted">{formatBytes(totalBytes)}</span>
+          <div className="flex items-center gap-3">
+            {onClear && files.length > 0 && (
+              <button
+                type="button"
+                onClick={onClear}
+                className="text-xs text-muted transition hover:text-danger"
+              >
+                清空
+              </button>
+            )}
+            <span className="text-xs text-muted">{formatBytes(totalBytes)}</span>
+          </div>
         </div>
 
         {/* 核心统计（§29：Files / Supported / NCM / QMC） */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat value={`${summary.total}`} label="Files" delay={0.02} />
-          <Stat value={`${summary.supported}`} label="Supported" tone="accent" delay={0.06} />
+          <Stat value={`${summary.supported}`} label="已支持" tone="accent" delay={0.06} />
           {proprietaryStats.slice(0, 2).map(([family, count], i) => (
             <Stat
               key={family}
@@ -167,7 +182,7 @@ export function ImportSummary({ summary, files }: ImportSummaryProps) {
           </span>
         </motion.div>
 
-        {/* 文件预览：格式徽标 + 名称 + 大小 + 时长 */}
+        {/* 文件预览：格式徽标 + 名称 + 大小 + 时长 + 删除 */}
         <ul className="divide-y divide-border/10">
           {preview.map((f) => (
             <li key={f.id} className="flex items-center gap-3 py-2.5">
@@ -187,6 +202,16 @@ export function ImportSummary({ summary, files }: ImportSummaryProps) {
               <span className="w-14 shrink-0 text-right text-xs tabular-nums text-muted">
                 {formatDuration(f.durationSec)}
               </span>
+              {onRemove && (
+                <button
+                  type="button"
+                  onClick={() => onRemove(f.id)}
+                  aria-label={`删除 ${f.name}`}
+                  className="shrink-0 rounded-lg p-1.5 text-muted transition hover:bg-danger/10 hover:text-danger"
+                >
+                  <IconX width={14} height={14} />
+                </button>
+              )}
             </li>
           ))}
         </ul>

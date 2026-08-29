@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.musicglass.app",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "cd ../../packages/ui && pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "cd ../../packages/ui && pnpm build",
     "frontendDist": "../../../packages/ui/dist"
   },
   "app": {

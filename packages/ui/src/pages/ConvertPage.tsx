@@ -10,7 +10,7 @@
  * 否则禁用「开始转换」按钮，避免不可逆的音频信息损失。
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { GlassCard } from '@/components/GlassCard';
 import { Button } from '@/components/Button';
@@ -26,6 +26,7 @@ import {
   type OverwritePolicy,
 } from '@musicglass/shared';
 import { formatBytes, formatDuration, formatLabel } from '@/lib/format';
+import { openFolderDialog } from '@/tauri';
 
 /** 有损输出格式（任务书 原则一） */
 const LOSSY_OUTPUT_FORMATS: AudioFormat[] = ['mp3', 'aac', 'ogg', 'opus', 'm4a'];
@@ -109,12 +110,25 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
   // 原则一：无损音源 + 有损输出 => 必须确认
   const hasLosslessSource = files.some((f) => isLossless(f.format));
   const isLossyOutput = LOSSY_OUTPUT_FORMATS.includes(outputFormat);
+
+  // 质量选项与输出格式联动：无损格式（FLAC/WAV）只能选「无损」，有损格式禁用「无损」
+  const isLosslessOutput = !isLossyOutput;
+  // 若当前质量与格式不匹配，自动纠正（如选 FLAC 却是有损质量 → 改无损）
+  useEffect(() => {
+    if (isLosslessOutput && quality !== 'lossless') setQuality('lossless');
+    if (!isLosslessOutput && quality === 'lossless') setQuality('high');
+  }, [isLosslessOutput, quality]);
   const showLossyWarning = hasLosslessSource && isLossyOutput;
   const canStart = !showLossyWarning || confirmLossy;
 
-  const handleBrowse = () => {
-    // 模拟目录选择逻辑（真实环境对接 Tauri dialog）
-    setOutputFolder('D:\\Music\\Converted');
+  const handleBrowse = async () => {
+    try {
+      const dirs = await openFolderDialog();
+      if (dirs && dirs.length > 0) setOutputFolder(dirs[0]);
+    } catch (e: any) {
+      console.error('[handleBrowse] 打开文件夹对话框失败:', e);
+      alert('无法打开文件夹选择框：' + (e?.message || e));
+    }
   };
 
   const handleStart = () => {
@@ -150,7 +164,7 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
       {/* Input Files */}
       <motion.div variants={item}>
         <GlassCard strong>
-          <h2 className="mb-3 text-lg font-medium text-text">Input Files</h2>
+          <h2 className="mb-3 text-lg font-medium text-text">输入文件</h2>
           {files.length === 0 ? (
             <p className="text-sm text-muted">尚未导入任何文件。</p>
           ) : (
@@ -187,7 +201,7 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
       {/* Output Format */}
       <motion.div variants={item}>
         <GlassCard>
-          <h2 className="mb-3 text-lg font-medium text-text">Output Format</h2>
+          <h2 className="mb-3 text-lg font-medium text-text">输出格式</h2>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-7">
             {OUTPUT_FORMATS.map((fmt) => {
               const active = fmt === outputFormat;
@@ -214,17 +228,24 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
       {/* Quality */}
       <motion.div variants={item}>
         <GlassCard>
-          <h2 className="mb-3 text-lg font-medium text-text">Quality</h2>
+          <h2 className="mb-3 text-lg font-medium text-text">质量</h2>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
             {QUALITY_OPTIONS.map((opt) => {
               const active = opt.value === quality;
+              // 无损格式禁用有损质量；有损格式禁用「无损」
+              const disabled =
+                (isLosslessOutput && opt.value !== 'lossless') ||
+                (!isLosslessOutput && opt.value === 'lossless');
               return (
                 <button
                   key={opt.value}
                   type="button"
+                  disabled={disabled}
                   onClick={() => setQuality(opt.value)}
                   className={`rounded-xl border px-3 py-3 text-left transition ${
-                    active
+                    disabled
+                      ? 'cursor-not-allowed border-border bg-surface/20 opacity-40'
+                      : active
                       ? 'border-accent bg-accent/15'
                       : 'border-border bg-surface/40 hover:bg-surface-strong/50'
                   }`}
@@ -269,7 +290,7 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
       {/* Metadata */}
       <motion.div variants={item}>
         <GlassCard>
-          <h2 className="mb-3 text-lg font-medium text-text">Metadata</h2>
+          <h2 className="mb-3 text-lg font-medium text-text">元数据</h2>
           <div className="flex flex-col gap-2">
             <Toggle
               label="保留扩展标签"
@@ -290,7 +311,7 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
       {/* Cover */}
       <motion.div variants={item}>
         <GlassCard>
-          <h2 className="mb-3 text-lg font-medium text-text">Cover</h2>
+          <h2 className="mb-3 text-lg font-medium text-text">封面</h2>
           <Toggle
             label="嵌入封面"
             description="将专辑封面写入输出音频文件"
@@ -303,10 +324,10 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
       {/* Lyrics */}
       <motion.div variants={item}>
         <GlassCard>
-          <h2 className="mb-3 text-lg font-medium text-text">Lyrics</h2>
+          <h2 className="mb-3 text-lg font-medium text-text">歌词</h2>
           <Toggle
             label="嵌入歌词"
-            description="将内嵌歌词（LRC / 原文）写入输出音频文件"
+            description="将内嵌歌词（LRC 格式 / 原文）写入输出音频文件"
             checked={embedLyrics}
             onChange={setEmbedLyrics}
           />
@@ -316,7 +337,7 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
       {/* Output Folder */}
       <motion.div variants={item}>
         <GlassCard>
-          <h2 className="mb-3 text-lg font-medium text-text">Output Folder</h2>
+          <h2 className="mb-3 text-lg font-medium text-text">输出目录</h2>
           <div className="flex gap-2">
             <input
               type="text"
@@ -357,7 +378,7 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
       {/* Filename Template */}
       <motion.div variants={item}>
         <GlassCard>
-          <h2 className="mb-3 text-lg font-medium text-text">Filename Template</h2>
+          <h2 className="mb-3 text-lg font-medium text-text">文件名模板</h2>
           <input
             type="text"
             value={filenameTemplate}
