@@ -5,7 +5,7 @@
 ## 当前状态
 
 - **版本**：v0.0.3（开发初期）
-- **当前 Phase**：Phase 3 ✅ 完成，准备进入 Phase 4（任务系统）
+- **当前 Phase**：Phase 4 ✅ 完成，准备进入 Phase 5（NCM 插件）
 - **最近 Commit**：见下方 Git 状态
 - **GitHub**：✅ 已连接 `zerodaan318-lab/musicglass`（Private），main 已同步
 
@@ -52,11 +52,24 @@
 - 全量测试：core 4 + detector 4 + audio 1 + metadata 7 = **16 个全部通过**
 - FFmpeg n9.0.1（GPL 全编码器）已下载解压至 `resources/ffmpeg/bin/`，build.rs 自动复制到 `target/debug/resources/`
 
+### Phase 4 — 任务系统 ✅ 完成
+- `task-manager` crate：
+  - `tasks.rs`：TaskStatus 六态状态机、TaskManager（并发 worker 池，默认 CPU/2）、submit/cancel/retry、run_all 批量执行、单任务失败隔离（不影响其他）、cancel 通过 AtomicBool 协作式信号
+  - `history.rs`：rusqlite (bundled) SQLite 历史表，record/query_all/clear（输入/输出/格式/大小/状态/时间/时长/错误）
+- `audio` crate 真实化：
+  - `inspect()`：ffprobe JSON 解析出 AudioInfo（codec/采样率/声道/位深/码率/时长/大小/无损判断）
+  - `convert()`：真实 ffmpeg 参数映射（无损 copy 优先；mp3/flac/wav/m4a/aac/ogg/opus 编码器选择；码率/采样率参数）
+  - `verify.rs`：转换后重新 inspect + 元数据对账（采样率/声道/时长/标题-艺术家-专辑 保真），音频+元数据双校验
+  - `Format::from_codec()` 映射 ffmpeg codec 名
+- 集成测试 `audio/tests/e2e.rs`：生成 FLAC → 写 Metadata → 转 MP3 320k → verify → history 写入查询，全链路通过
+- 全量测试：core 4 + detector 4 + audio 2(e2e+unit) + metadata 7 + task-manager 6 = **23 个全部通过**
+
 ## 已完成
 - 项目脚手架、Git/GitHub 初始化（Phase 0）
 - 架构文档全套（Phase 1）
-- 音频核心骨架（Phase 2）：workspace、检测器、转换引擎接口、插件系统抽象
-- Metadata 真实读写（Phase 3）：Unified Model 映射、封面、歌词、丢失记录、集成验证
+- 音频核心骨架（Phase 2）
+- Metadata 真实读写（Phase 3）
+- 任务系统：队列/并发/取消重试/SQLite 历史 + 端到端转换验证（Phase 4）
 
 ## 待完成
 - Phase 4 ~ Phase 11（见 `PROJECT_PLAN.md`）

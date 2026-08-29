@@ -9,4 +9,8 @@ build = "build.rs"
 musicglass-core = { path = "../core" }
 musicglass-metadata = { path = "../metadata" }
 serde.workspace = true
+serde_json.workspace = true
 log.workspace = true
+
+[dev-dependencies]
+musicglass-task-manager = { path = "../task-manager" }

@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Format {
     Mp3,
     Flac,
@@ -22,6 +22,7 @@ pub enum Format {
     Ncm,
     /// QQ Music encrypted container family (task book §9).
     Qmc,
+    #[default]
     Unknown,
 }
 
@@ -58,5 +59,23 @@ impl Format {
     /// Whether this format is a proprietary container requiring plugin handling.
     pub fn is_proprietary(&self) -> bool {
         matches!(self, Format::Ncm | Format::Qmc)
+    }
+
+    /// Map an FFmpeg codec_name (e.g. "flac", "mp3") to a [`Format`].
+    pub fn from_codec(codec: &str) -> Format {
+        match codec.to_ascii_lowercase().as_str() {
+            "flac" => Format::Flac,
+            "mp3" => Format::Mp3,
+            "wav" | "pcm_s16le" | "pcm_s24le" | "pcm_s32le" | "pcm_f32le" => Format::Wav,
+            "aac" => Format::Aac,
+            "mp4" | "m4a" | "mov_text" => Format::M4a,
+            "vorbis" => Format::Ogg,
+            "opus" => Format::Opus,
+            "ape" => Format::Ape,
+            "wma" => Format::Wma,
+            "alac" => Format::Alac,
+            "aiff" => Format::Aiff,
+            _ => Format::Unknown,
+        }
     }
 }
