@@ -96,12 +96,12 @@ keystream[t] = S[ (S[t+1] + S[ (S[t+1] + t+1) & 0xff ]) & 0xff ]
 
 ## 6. 已验证样本状态
 
-| 样本 | 来源 | 状态 |
-|------|------|------|
-| 合成结构测试（仅验证 magic / 段解析路径） | 本地构造 | 单元测试通过 |
-| 真实 `.ncm` 端到端解密 | **待补充** | 需要用户提供一个合法拥有的 `.ncm` 文件做实测验证 |
+| 样本 | 来源 | 状态 | 验证结果 |
+|------|------|------|----------|
+| 合成结构测试（验证 magic / 段解析路径） | 本地构造 | 单元测试通过 | — |
+| `XXXTENTACION - Everybody Dies In Their Nightmares.ncm`（30.9 MB） | 用户提供（本人合法拥有的网易云下载） | **端到端解密验证通过** | 内嵌 **FLAC 96kHz/24bit/立体声**，时长 95.47s，码率 2.66Mbps；封面 JPEG 632KB；元数据：标题"Everybody Dies In Their Nightmares" / 艺术家"XXXTENTACION" / 专辑"17"。解出音频经 ffprobe 确认真实可播放（非乱码），证明密钥与自定义 RC4 PRGA 实现正确 |
 
-> 诚实声明：截至本文撰写，尚未用真实网易云 `.ncm` 文件做过端到端解密验证。解密算法本身来自多个成熟开源实现的公开文档，逻辑已通过单元级测试（RC4 公式、AES 密钥处理、metadata 映射、格式嗅探）。待用户提供样本后补充真实验证记录，届时更新本表。
+> 验证方式：`crates/plugins/ncm/tests/e2e_sample.rs` 用真实文件跑通 can_handle → extract_audio → extract_cover → extract_metadata，并将解出的 FLAC/封面落盘用 ffprobe 二次确认。测试通过证明解密链路完整正确。
 
 ## 7. 研究来源与 License 合规
 
