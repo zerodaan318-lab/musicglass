@@ -163,7 +163,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  appearance: 'dark',
+  appearance: 'light',
   conversion: { defaultQuality: 'lossless', confirmLossy: true },
   output: {
     defaultDirectory: '',

@@ -1,6 +1,7 @@
 // MusicGlass 桌面壳入口 (Tauri 2)
 // 把前端 IPC 调用桥接到 workspace 的 Rust crate（detector/audio/plugins/metadata/task-manager）
 // 任务书 §7 插件架构：前端只通过 Plugin::find 统一分发，不写 if ncm/if qmc
+#![cfg_attr(windows, windows_subsystem = "windows")] // GUI 程序不弹控制台黑窗口
 
 use musicglass_audio::{ConversionRequest};
 use musicglass_core::{logger, Format, Metadata};

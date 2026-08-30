@@ -57,12 +57,35 @@ function computeSummary(files: DetectedFile[]): ImportSummary {
  * 轻量应用状态（任务书 §45：避免大量全局变量）。
  * 真实接入 Tauri 时，detect 走 detectFiles（→ invoke detect_files），convert 走 tauri.runTask。
  */
+
+const SETTINGS_KEY = 'musicglass.settings.v1';
+
+/** 从 localStorage 读取持久化设置（缺字段时回退默认值，保证向前兼容） */
+function loadSettings(): Settings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    const parsed = JSON.parse(raw) as Partial<Settings>;
+    return { ...DEFAULT_SETTINGS, ...parsed };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+/** 写入持久化设置 */
+function saveSettings(s: Settings) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch {
+    /* 存储不可用时静默降级（不影响内存态） */
+  }
+}
 export function useAppStore() {
   const [files, setFiles] = useState<DetectedFile[]>([]);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
   const [tasks, setTasks] = useState<ConversionTask[]>([]);
   const [config, setConfig] = useState<ConversionConfig>(initialConfig);
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<Settings>(loadSettings);
   const [errors, setErrors] = useState<AppErrorView[]>([]);
   const [view, setView] = useState<View>('home');
 
@@ -175,7 +198,10 @@ export function useAppStore() {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: 'cancelled' } : t)));
   }, []);
 
-  const updateSettings = useCallback((next: Settings) => setSettings(next), []);
+  const updateSettings = useCallback((next: Settings) => {
+    setSettings(next);
+    saveSettings(next);
+  }, []);
 
   const pushError = useCallback((e: AppErrorView) => setErrors((prev) => [...prev, e]), []);
   const clearErrors = useCallback(() => setErrors([]), []);

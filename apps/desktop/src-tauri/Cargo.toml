@@ -28,6 +28,10 @@ log = "0.4"
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
+[[bin]]
+name = "musicglass-desktop"
+path = "src/main.rs"
+
 [features]
 # 默认关闭自定义协议（dev 用 devUrl）
 default = ["custom-protocol"]

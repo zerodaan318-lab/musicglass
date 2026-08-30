@@ -12,6 +12,7 @@ import { useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/GlassCard';
 import { Button } from '@/components/Button';
+import { openFolderDialog } from '@/tauri';
 import { IconSettings } from '@/components/Icon';
 import {
   DEFAULT_SETTINGS,
@@ -230,16 +231,32 @@ function OutputPanel({ settings, onChange }: PanelProps) {
   return (
     <div className="space-y-4">
       <Field title="默认输出目录" desc="转换结果的保存位置（留空则使用源文件同目录）">
-        <TextInput
-          value={settings.output.defaultDirectory}
-          placeholder="例如：D:/Music/Converted"
-          onChange={(v) =>
-            onChange({
-              ...settings,
-              output: { ...settings.output, defaultDirectory: v },
-            })
-          }
-        />
+        <div className="flex items-center gap-2">
+          <TextInput
+            value={settings.output.defaultDirectory}
+            placeholder="例如：D:/Music/Converted"
+            onChange={(v) =>
+              onChange({
+                ...settings,
+                output: { ...settings.output, defaultDirectory: v },
+              })
+            }
+          />
+          <Button
+            variant="ghost"
+            onClick={async () => {
+              const dir = await openFolderDialog();
+              if (dir && dir[0]) {
+                onChange({
+                  ...settings,
+                  output: { ...settings.output, defaultDirectory: dir[0] },
+                });
+              }
+            }}
+          >
+            浏览
+          </Button>
+        </div>
       </Field>
       <Field title="文件夹结构" desc="按变量组织子目录，如 {album} 或 {artist}/{album}">
         <TextInput
