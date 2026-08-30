@@ -3,10 +3,11 @@
 // 任务书 §7 插件架构：前端只通过 Plugin::find 统一分发，不写 if ncm/if qmc
 
 use musicglass_audio::{ConversionRequest};
-use musicglass_core::{Format, Metadata};
+use musicglass_core::{logger, Format, Metadata};
 use musicglass_detector::detect;
 use musicglass_metadata::{read_metadata, write_metadata};
 use musicglass_plugins::Plugin;
+use musicglass_task_manager::History;
 use serde::Serialize;
 use std::path::PathBuf;
 
@@ -173,8 +174,35 @@ fn convert_audio(
             .map_err(|e| format!("无法创建输出目录 {}: {}", parent.display(), e))?;
     }
 
-    musicglass_audio::convert(&PathBuf::from(&work_input), &PathBuf::from(&output), &req)
-        .map_err(|e| format!("转换失败: {}", e))?;
+    let convert_result = musicglass_audio::convert(&PathBuf::from(&work_input), &PathBuf::from(&output), &req);
+    let status_str: &str;
+    let err_msg: Option<String>;
+    match &convert_result {
+        Ok(()) => {
+            status_str = "Completed";
+            err_msg = None;
+        }
+        Err(e) => {
+            status_str = "Failed";
+            err_msg = Some(format!("转换失败: {}", e));
+        }
+    }
+    // 无论成败都写入历史（Phase 10 恢复：失败任务可被 query_failed 找回）
+    if let Some(hist) = open_history() {
+        let src_fmt = detect(&PathBuf::from(&input)).map(|d| d.format).unwrap_or(Format::Unknown);
+        let _ = hist.record(
+            &PathBuf::from(&input),
+            &PathBuf::from(&output),
+            src_fmt,
+            fmt,
+            status_str,
+            PathBuf::from(&input).metadata().map(|m| m.len()).unwrap_or(0),
+            PathBuf::from(&output).metadata().map(|m| m.len()).unwrap_or(0),
+            None,
+            err_msg.as_deref(),
+        );
+    }
+    convert_result.map_err(|e| format!("转换失败: {}", e))?;
 
     // 铁律二：Metadata 尽可能完整保留——读源标签并嵌入输出文件
     let src_meta = if let Some(plugin) = Plugin::find(&PathBuf::from(&input)) {
@@ -267,6 +295,43 @@ fn doctor() -> Result<serde_json::Value, String> {
     }))
 }
 
+/// 历史数据库路径：exe 同级目录下的 `musicglass_history.db`。
+fn history_path() -> PathBuf {
+    if let Some(exe) = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join("musicglass_history.db"))) {
+        exe
+    } else {
+        PathBuf::from("musicglass_history.db")
+    }
+}
+
+/// 打开历史库（失败返回 None，不影响转换主流程）。
+fn open_history() -> Option<History> {
+    History::open(&history_path()).ok()
+}
+
+/// Phase 10 恢复：返回上次未成功（Failed/Cancelled）的转换任务，供前端提示重试。
+#[tauri::command]
+fn get_failed_history() -> Result<Vec<serde_json::Value>, String> {
+    let hist = open_history().ok_or_else(|| "无法打开历史库".to_string())?;
+    let entries = hist.query_failed().map_err(|e| e.to_string())?;
+    let out = entries
+        .into_iter()
+        .map(|e| {
+            serde_json::json!({
+                "id": e.id,
+                "input": e.input,
+                "output": e.output,
+                "inputFormat": e.input_format,
+                "outputFormat": e.output_format,
+                "status": e.status,
+                "error": e.error,
+                "createdAt": e.created_at,
+            })
+        })
+        .collect();
+    Ok(out)
+}
+
 fn format_name(f: Format) -> String {
     f.as_str().to_string()
 }
@@ -284,6 +349,9 @@ fn parse_format(s: &str) -> Option<Format> {
 }
 
 fn main() {
+    // Phase 10 稳定性：初始化日志落盘 + 全局 panic hook（崩溃写入日志而非静默丢失）
+    logger::init_logger();
+    log::info!("MusicGlass 桌面壳启动");
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
@@ -296,6 +364,7 @@ fn main() {
             convert_audio,
             doctor,
             reveal_file,
+            get_failed_history,
         ])
         .run(tauri::generate_context!())
         .expect("error while running MusicGlass");

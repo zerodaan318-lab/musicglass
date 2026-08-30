@@ -2018,6 +2018,8 @@ dependencies = [
 name = "musicglass-core"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "log",
  "serde",
  "thiserror 1.0.69",
 ]
@@ -2026,6 +2028,7 @@ dependencies = [
 name = "musicglass-desktop"
 version = "0.1.0"
 dependencies = [
+ "log",
  "musicglass-audio",
  "musicglass-core",
  "musicglass-detector",

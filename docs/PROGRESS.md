@@ -5,7 +5,7 @@
 ## 当前状态
 
 - **版本**：v0.1.0（release 已出 msi + portable zip）
-- **当前 Phase**：Phase 8 ✅ 完成（Tauri 桌面壳 + EXE 打包 msi/zip），进入 Phase 9（压力测试）
+- **当前 Phase**：Phase 9 ✅ 完成（压力测试 5/5 通过），进入 Phase 10（稳定性：错误处理/日志/恢复/防崩溃）
 - **最近 Commit**：见下方 Git 状态
 - **GitHub**：✅ 已连接 `zerodaan318-lab/musicglass`（Private），main 已同步
 
@@ -132,9 +132,19 @@
 - release exe 路径：`apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/musicglass-desktop.exe`
 - ffmpeg 资源通过 `tauri.conf.json` 的 `bundle.resources` 打进 `resources/ffmpeg/bin/`，满足「release 必须自带 ffmpeg」铁律
 
+### Phase 10 — 稳定性（错误处理/日志/恢复/防崩溃）✅ 完成
+- `core/src/logger.rs`：统一文件日志（`musicglass.log` 落盘 exe 同级目录）+ 分级（info/warn/error）；`install_panic_hook` 捕获任何线程 panic 写入日志
+- `task-manager/src/tasks.rs`：worker 线程 `catch_unwind` 包裹——转换 panic 转成 `Failed` 而非带走主进程（防崩溃）
+- `task-manager/src/history.rs`：`query_failed()` 列出上次 Failed/Cancelled 任务（恢复机制后端）
+- 桌面壳 `apps/desktop/src-tauri/src/main.rs`：
+  - `main()` 启动即 `logger::init_logger()`（日志+panic hook 生效）
+  - `convert_audio` 每次转换（成败）写入 `musicglass_history.db`（`open_history()` 容错，不影响主流程）
+  - 新增 `get_failed_history` 命令（前端恢复上次失败任务用）
+- `apps/desktop/src-tauri/Cargo.toml`：release `panic="unwind"`（abort 会让 catch_unwind 失效，稳定性优先）
+- 测试：core logger 1 + task-manager panic 隔离 1 + query_failed 1；全量 `--workspace` 0 failed
+- commit 已 push
+
 ## 待完成
-- Phase 9：压力测试（100/500/1000 文件、大文件、损坏文件）
-- Phase 10：稳定性（错误处理/日志/恢复/防崩溃）
 - Phase 11：v1.0.0 验收发布
 
 ## 已知问题

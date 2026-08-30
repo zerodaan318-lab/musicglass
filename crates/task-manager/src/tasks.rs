@@ -181,7 +181,20 @@ impl TaskManager {
                 let h = std::thread::spawn(move || {
                     let task_snapshot = { tasks.lock().unwrap().get(&id).cloned() };
                     if let Some(task) = task_snapshot {
-                        let res = worker(&task, &flag);
+                        // Phase 10 防崩溃：worker panic 时转成 Failed，不带走主进程。
+                        let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            worker(&task, &flag)
+                        }));
+                        let res = res.unwrap_or_else(|p| {
+                            let msg = p
+                                .downcast_ref::<&str>()
+                                .map(|s| s.to_string())
+                                .or_else(|| p.downcast_ref::<String>().cloned())
+                                .unwrap_or_else(|| "worker panicked".into());
+                            Err(musicglass_core::AppError::Other(format!(
+                                "worker panic: {msg}"
+                            )))
+                        });
                         let mut g = tasks.lock().unwrap();
                         if let Some(t) = g.get_mut(&id) {
                             // Don't override an explicit cancel that landed mid-run.
@@ -261,5 +274,25 @@ mod tests {
         let id = tm.submit(PathBuf::from("x"), PathBuf::from("y"), Format::Mp3);
         tm.cancel(id).unwrap();
         assert_eq!(tm.get(id).unwrap().status, TaskStatus::Cancelled);
+    }
+
+    #[test]
+    fn worker_panic_is_isolated() {
+        // Phase 10 防崩溃：worker 内 panic 必须转成 Failed，且其他任务照常完成。
+        let tm = TaskManager::with_concurrency(2);
+        let ok_id = tm.submit(PathBuf::from("good"), PathBuf::from("out1"), Format::Flac);
+        let boom_id = tm.submit(PathBuf::from("boom"), PathBuf::from("out2"), Format::Flac);
+
+        tm.run_all(|task, _flag| {
+            if task.input.to_string_lossy().contains("boom") {
+                panic!("simulated worker crash");
+            }
+            Ok(())
+        });
+
+        assert_eq!(tm.get(ok_id).unwrap().status, TaskStatus::Completed);
+        let boom = tm.get(boom_id).unwrap();
+        assert_eq!(boom.status, TaskStatus::Failed);
+        assert!(boom.error.as_deref().unwrap_or("").contains("panic"));
     }
 }

@@ -6,4 +6,5 @@
 pub mod history;
 pub mod tasks;
 
+pub use history::History;
 pub use tasks::{Task, TaskManager, TaskStatus};

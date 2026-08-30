@@ -10,6 +10,7 @@ pub mod audio;
 pub mod container;
 pub mod error;
 pub mod format;
+pub mod logger;
 pub mod metadata;
 pub mod path;
 pub mod plugin;

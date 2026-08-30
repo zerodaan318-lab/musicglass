@@ -23,6 +23,7 @@ musicglass-audio = { path = "../../../crates/audio" }
 musicglass-metadata = { path = "../../../crates/metadata" }
 musicglass-task-manager = { path = "../../../crates/task-manager" }
 musicglass-plugins = { path = "../../../crates/plugins" }
+log = "0.4"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -33,7 +34,9 @@ default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
 
 [profile.release]
-panic = "abort"
+# panic = "abort" 会让 catch_unwind 失效，破坏 Phase 10 防崩溃（worker panic 无法转 Failed）。
+# 改为 unwind 以保留 panic 捕获能力（体积略增，但稳定性优先）。
+panic = "unwind"
 codegen-units = 1
 lto = true
 opt-level = "s"

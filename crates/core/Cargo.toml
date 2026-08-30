@@ -7,5 +7,7 @@ license.workspace = true
 [dependencies]
 serde.workspace = true
 thiserror.workspace = true
+log.workspace = true
+chrono = { version = "0.4", features = ["serde"] }
 
 [dev-dependencies]
