@@ -64,15 +64,15 @@ function Toggle({ label, description, checked, onChange }: ToggleProps) {
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-surface/40 px-4 py-3 text-left transition hover:bg-surface-strong/50"
+      className="flex w-full items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left transition-colors hover:bg-white/10"
     >
       <span>
         <span className="block font-medium text-text">{label}</span>
         {description && <span className="mt-0.5 block text-xs text-muted">{description}</span>}
       </span>
       <span
-        className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-          checked ? 'bg-accent' : 'bg-surface-strong'
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-all duration-180 ${
+          checked ? 'bg-accent shadow-glass-btn' : 'bg-white/10 border border-white/15'
         }`}
       >
         <span
@@ -172,7 +172,7 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
               {files.map((f) => (
                 <li
                   key={f.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface/40 px-4 py-2.5"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5"
                 >
                   <div className="min-w-0">
                     <div className="truncate font-medium text-text">{f.name}</div>
@@ -210,10 +210,10 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
                   key={fmt}
                   type="button"
                   onClick={() => setOutputFormat(fmt)}
-                  className={`flex items-center justify-center gap-1 rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
+                  className={`flex items-center justify-center gap-1 rounded-2xl border px-3 py-2.5 text-sm font-medium transition-all duration-180 ${
                     active
-                      ? 'border-accent bg-accent/15 text-accent'
-                      : 'border-border bg-surface/40 text-muted hover:bg-surface-strong/50'
+                      ? 'border-accent/60 bg-accent/15 text-accent shadow-glass-btn'
+                      : 'border-white/10 bg-white/5 text-muted hover:bg-white/10'
                   }`}
                 >
                   {active && <IconCheck width={16} height={16} />}
@@ -242,12 +242,12 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
                   type="button"
                   disabled={disabled}
                   onClick={() => setQuality(opt.value)}
-                  className={`rounded-xl border px-3 py-3 text-left transition ${
+                  className={`rounded-2xl border px-3 py-3 text-left transition-all duration-180 ${
                     disabled
-                      ? 'cursor-not-allowed border-border bg-surface/20 opacity-40'
+                      ? 'cursor-not-allowed border-white/10 bg-white/5 opacity-40'
                       : active
-                      ? 'border-accent bg-accent/15'
-                      : 'border-border bg-surface/40 hover:bg-surface-strong/50'
+                      ? 'border-accent/60 bg-accent/15'
+                      : 'border-white/10 bg-white/5 hover:bg-white/10'
                   }`}
                 >
                   <div className={`text-sm font-semibold ${active ? 'text-accent' : 'text-text'}`}>
@@ -344,7 +344,7 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
               value={outputFolder}
               onChange={(e) => setOutputFolder(e.target.value)}
               placeholder="选择或输入输出目录"
-              className="min-w-0 flex-1 rounded-xl border border-border bg-surface/40 px-4 py-2.5 text-sm text-text outline-none placeholder:text-muted focus:border-accent"
+              className="min-w-0 flex-1 rounded-2xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-text outline-none placeholder:text-muted focus:border-accent/60"
             />
             <Button variant="secondary" icon={<IconFolder />} onClick={handleBrowse}>
               浏览
@@ -360,10 +360,10 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
                     key={opt.value}
                     type="button"
                     onClick={() => setOverwrite(opt.value)}
-                    className={`rounded-lg border px-3 py-1.5 text-sm transition ${
+                    className={`rounded-xl border px-3 py-1.5 text-sm transition-all duration-180 ${
                       active
-                        ? 'border-accent bg-accent/15 text-accent'
-                        : 'border-border bg-surface/40 text-muted hover:bg-surface-strong/50'
+                        ? 'border-accent/60 bg-accent/15 text-accent'
+                        : 'border-white/10 bg-white/5 text-muted hover:bg-white/10'
                     }`}
                   >
                     {opt.label}
@@ -384,7 +384,7 @@ export function ConvertPage({ files, onStart }: ConvertPageProps) {
             value={filenameTemplate}
             onChange={(e) => setFilenameTemplate(e.target.value)}
             placeholder="{track} {title}"
-            className="w-full rounded-xl border border-border bg-surface/40 px-4 py-2.5 text-sm text-text outline-none placeholder:text-muted focus:border-accent"
+            className="w-full rounded-2xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-text outline-none placeholder:text-muted focus:border-accent/60"
           />
           <p className="mt-2 text-xs text-muted">
             可用变量：{'{track}'} {'{title}'} {'{artist}'} {'{album}'} {'{year}'}

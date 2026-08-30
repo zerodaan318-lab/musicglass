@@ -70,7 +70,7 @@ export default function App() {
       <main className="flex-1 overflow-hidden">
         <div
           key={view}
-          className="h-full overflow-y-auto px-8 py-6"
+          className="h-full animate-view-in overflow-y-auto px-8 py-7"
         >
           {view === 'home' && (
             <div className="mx-auto max-w-4xl space-y-6">

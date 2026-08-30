@@ -55,7 +55,7 @@ interface SegmentedProps<T extends string> {
 /** 三选/多选分段控件（外观模式、内存策略等） */
 function Segmented<T extends string>({ name, value, options, onChange }: SegmentedProps<T>) {
   return (
-    <div className="inline-flex rounded-xl glass p-1 gap-1">
+    <div className="inline-flex rounded-2xl glass p-1 gap-1">
       {options.map((opt) => {
         const active = opt.value === value;
         return (
@@ -63,14 +63,14 @@ function Segmented<T extends string>({ name, value, options, onChange }: Segment
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`relative px-4 py-1.5 text-sm rounded-lg transition-colors ${
+            className={`relative px-4 py-1.5 text-sm rounded-xl transition-colors duration-180 ${
               active ? 'text-white' : 'text-muted hover:text-text'
             }`}
           >
             {active && (
               <motion.span
                 layoutId={`seg-${name}`}
-                className="absolute inset-0 rounded-lg bg-accent"
+                className="absolute inset-0 rounded-xl bg-accent/25 ring-1 ring-accent/40"
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}
@@ -99,8 +99,8 @@ function Toggle({
       aria-checked={checked}
       aria-label={label}
       onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-        checked ? 'bg-accent' : 'bg-surface-strong border border-border/20'
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-all duration-180 ${
+        checked ? 'bg-accent shadow-glass-btn' : 'bg-white/10 border border-white/15'
       }`}
     >
       <motion.span
@@ -123,7 +123,7 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <GlassCard className="flex items-center justify-between gap-4">
+    <GlassCard className="flex items-center justify-between gap-4 rounded-2xl">
       <div className="min-w-0">
         <div className="font-medium text-text">{title}</div>
         {desc && <div className="mt-0.5 text-sm text-muted">{desc}</div>}
@@ -149,7 +149,7 @@ function TextInput({
       value={value}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
-      className="w-64 rounded-xl bg-surface/60 border border-border/15 px-3 py-2 text-sm text-text placeholder:text-muted/60 outline-none focus:border-accent/60"
+      className="w-64 rounded-2xl border border-white/12 bg-white/5 px-3 py-2 text-sm text-text placeholder:text-muted/60 outline-none focus:border-accent/60"
     />
   );
 }
@@ -196,7 +196,7 @@ function ConversionPanel({ settings, onChange }: PanelProps) {
               },
             })
           }
-          className="rounded-xl bg-surface/60 border border-border/15 px-3 py-2 text-sm text-text outline-none focus:border-accent/60"
+          className="rounded-2xl border border-white/12 bg-white/5 px-3 py-2 text-sm text-text outline-none focus:border-accent/60"
         >
           {qualityOptions.map((o) => (
             <option key={o.value} value={o.value}>
@@ -277,7 +277,7 @@ function OutputPanel({ settings, onChange }: PanelProps) {
               },
             })
           }
-          className="rounded-xl bg-surface/60 border border-border/15 px-3 py-2 text-sm text-text outline-none focus:border-accent/60"
+          className="rounded-2xl border border-white/12 bg-white/5 px-3 py-2 text-sm text-text outline-none focus:border-accent/60"
         >
           {overwriteOptions.map((o) => (
             <option key={o.value} value={o.value}>
@@ -344,7 +344,7 @@ function PerformancePanel({ settings, onChange }: PanelProps) {
           min={1}
           value={performance.concurrency}
           onChange={(e) => onNum('concurrency', e.target.value)}
-          className="w-24 rounded-xl bg-surface/60 border border-border/15 px-3 py-2 text-sm text-text outline-none focus:border-accent/60"
+          className="w-24 rounded-2xl border border-white/12 bg-white/5 px-3 py-2 text-sm text-text outline-none focus:border-accent/60"
         />
       </Field>
       <Field title="CPU 线程数" desc="每个任务使用的线程数（0 = 自动）">
@@ -353,7 +353,7 @@ function PerformancePanel({ settings, onChange }: PanelProps) {
           min={0}
           value={performance.cpuThreads}
           onChange={(e) => onNum('cpuThreads', e.target.value)}
-          className="w-24 rounded-xl bg-surface/60 border border-border/15 px-3 py-2 text-sm text-text outline-none focus:border-accent/60"
+          className="w-24 rounded-2xl border border-white/12 bg-white/5 px-3 py-2 text-sm text-text outline-none focus:border-accent/60"
         />
       </Field>
       <Field title="临时目录" desc="转换中间文件存放路径（留空则使用系统临时目录）">
@@ -409,7 +409,7 @@ function AdvancedPanel({ onChange }: { onChange: (next: Settings) => void }) {
         <select
           value={logLevel}
           onChange={(e) => setLogLevel(e.target.value as typeof logLevel)}
-          className="rounded-xl bg-surface/60 border border-border/15 px-3 py-2 text-sm text-text outline-none focus:border-accent/60"
+          className="rounded-2xl border border-white/12 bg-white/5 px-3 py-2 text-sm text-text outline-none focus:border-accent/60"
         >
           <option value="error">错误</option>
           <option value="warn">警告</option>
@@ -420,7 +420,7 @@ function AdvancedPanel({ onChange }: { onChange: (next: Settings) => void }) {
       <Field title="开发者模式" desc="显示内部调试信息与性能面板（模拟项）">
         <Toggle label="开发者模式" checked={false} onChange={() => {}} />
       </Field>
-      <GlassCard className="flex items-center justify-between gap-4">
+      <GlassCard className="flex items-center justify-between gap-4 rounded-2xl">
         <div className="min-w-0">
           <div className="font-medium text-text">重置所有设置</div>
           <div className="mt-0.5 text-sm text-muted">恢复为默认值（占位，立即生效）</div>
@@ -442,7 +442,7 @@ function AboutPanel() {
     <div className="space-y-4">
       <GlassCard strong>
         <div className="flex items-center gap-3">
-          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-accent/20 text-accent text-2xl">
+          <div className="glass-icon grid h-12 w-12 place-items-center rounded-2xl bg-accent/20 text-accent text-2xl">
             ♪
           </div>
           <div>
@@ -518,14 +518,14 @@ export function SettingsPage({
                   key={tab.id}
                   type="button"
                   onClick={() => setActive(tab.id)}
-                  className={`relative flex items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
-                    isActive ? 'text-white' : 'text-muted hover:text-text hover:bg-surface-strong/40'
+                  className={`relative flex items-center gap-2 rounded-2xl px-3 py-2.5 text-left text-sm transition-colors duration-180 ${
+                    isActive ? 'text-white' : 'text-muted hover:text-text hover:bg-white/5'
                   }`}
                 >
                   {isActive && (
                     <motion.span
                       layoutId="tab-highlight"
-                      className="absolute inset-0 rounded-xl bg-accent"
+                      className="absolute inset-0 rounded-2xl bg-accent/15 ring-1 ring-accent/30 backdrop-blur-md"
                       transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                     />
                   )}

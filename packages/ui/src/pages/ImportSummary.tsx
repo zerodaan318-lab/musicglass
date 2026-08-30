@@ -61,7 +61,7 @@ function Stat({
     tone === 'accent' ? 'text-accent' : tone === 'warning' ? 'text-warning' : 'text-text';
   return (
     <motion.div
-      className="rounded-xl2 bg-surface-strong/40 px-4 py-4 text-center"
+      className="rounded-2xl bg-white/5 px-4 py-4 text-center ring-1 ring-white/10"
       initial={{ opacity: 1, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.3, ease: 'easeOut' }}
@@ -116,7 +116,7 @@ export function ImportSummary({ summary, files, onRemove, onClear }: ImportSumma
               <button
                 type="button"
                 onClick={onClear}
-                className="text-xs text-muted transition hover:text-danger"
+                className="glass-pill rounded-full px-3 py-1.5 text-xs text-muted transition-colors duration-180 hover:text-danger hover:bg-white/10"
               >
                 清空
               </button>
@@ -161,7 +161,7 @@ export function ImportSummary({ summary, files, onRemove, onClear }: ImportSumma
             {standardStats.map(([label, count]) => (
               <span
                 key={label}
-                className="rounded-xl bg-surface-strong/50 px-2.5 py-1 text-xs font-medium text-muted"
+                className="glass-pill rounded-full px-2.5 py-1 text-xs font-medium text-muted"
               >
                 {label} × {count}
               </span>
@@ -171,7 +171,7 @@ export function ImportSummary({ summary, files, onRemove, onClear }: ImportSumma
 
         {/* 总时长（§29：Total Duration / 01:43:28） */}
         <motion.div
-          className="flex items-center justify-between rounded-xl2 bg-surface-strong/40 px-4 py-3.5"
+          className="glass-soft flex items-center justify-between rounded-2xl px-4 py-3.5"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.18, duration: 0.3 }}

@@ -61,7 +61,7 @@ export function TaskList({ tasks, onPause, onCancel, onResume }: TaskListProps) 
   if (tasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-        <span className="grid h-14 w-14 place-items-center rounded-2xl bg-surface-strong/50 text-muted">
+        <span className="glass-icon grid h-14 w-14 place-items-center rounded-2xl text-muted">
           <IconMusic width={26} height={26} />
         </span>
         <p className="text-sm text-muted">暂无转换任务</p>
@@ -95,7 +95,7 @@ export function TaskList({ tasks, onPause, onCancel, onResume }: TaskListProps) 
                     className="aspect-square w-16 shrink-0 rounded-xl object-cover"
                   />
                 ) : (
-                  <div className="grid aspect-square w-16 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-accent/30 to-success/20 text-white/70">
+                  <div className="glass-icon grid aspect-square w-16 shrink-0 place-items-center rounded-2xl text-white/70">
                     <IconMusic width={26} height={26} />
                   </div>
                 )}
@@ -115,7 +115,7 @@ export function TaskList({ tasks, onPause, onCancel, onResume }: TaskListProps) 
                   </div>
 
                   {/* 格式转换标签：FROM → TO（大写） */}
-                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-surface-strong/50 px-2.5 py-1 text-xs font-medium text-muted">
+                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/8 px-2.5 py-1 text-xs font-medium text-muted ring-1 ring-white/10">
                     <span className="text-text">{formatLabel(task.fromFormat)}</span>
                     <span aria-hidden>→</span>
                     <span className="text-accent">{formatLabel(task.toFormat)}</span>

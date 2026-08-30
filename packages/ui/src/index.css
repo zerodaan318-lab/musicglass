@@ -2,56 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== MusicGlass 设计系统 =====
-   玻璃拟态 (Glassmorphism) + 深色优先 + CSS 变量驱动深浅色（任务书 §27, §34）
-   毛玻璃不得影响：可读性 / 按钮识别 / 文字对比度 / 操作效率（§28）
+/* ===== MusicGlass 设计系统 · Liquid Glass 重做 =====
+   低饱和蓝紫 / 冷灰 / 淡青 环境光 + 液态玻璃材质（macOS/visionOS 质感，非照搬）
+   业务/交互/后端零改动，仅视觉层。
+   玻璃材质：半透明白底 + blur/saturate + 细白边 + 顶部 inset 高光 + 边缘折射 + 大柔阴影。
 */
 
 :root {
   /* Dark（默认） */
-  --mg-bg: 13 16 23;
-  --mg-surface: 30 34 45;
-  --mg-surface-strong: 42 47 61;
+  --mg-bg: 13 15 24;
+  --mg-surface: 30 34 48;
+  --mg-surface-strong: 42 47 64;
   --mg-border: 255 255 255;
-  --mg-text: 233 237 244;
-  --mg-muted: 148 156 171;
-  --mg-accent: 124 142 255;
-  --mg-accent-soft: 124 142 255;
-  --mg-danger: 255 110 110;
-  --mg-success: 96 205 150;
-  --mg-warning: 245 190 90;
+  --mg-text: 236 239 247;
+  --mg-muted: 150 158 178;
+  /* 低饱和蓝紫品牌色（克制） */
+  --mg-accent: 130 145 232;
+  --mg-accent-soft: 130 145 232;
+  --mg-danger: 240 120 120;
+  --mg-success: 96 200 150;
+  --mg-warning: 226 180 100;
   --mg-glass-bg: 255 255 255;
-  --mg-glass-alpha: 0.06;
-  --mg-app-gradient: radial-gradient(
-      1200px 800px at 15% -10%,
-      rgba(124, 142, 255, 0.18),
-      transparent 60%
-    ),
-    radial-gradient(900px 700px at 110% 10%, rgba(96, 205, 150, 0.12), transparent 55%),
-    linear-gradient(180deg, #0d1017 0%, #0a0c12 100%);
+  --mg-glass-alpha: 0.07;
+  /* 背景：低饱和蓝紫 + 冷灰 + 淡青，大范围柔和 radial 环境光 */
+  --mg-app-gradient:
+    radial-gradient(1100px 760px at 12% -8%, rgba(120, 130, 220, 0.22), transparent 58%),
+    radial-gradient(900px 720px at 108% 8%, rgba(90, 190, 200, 0.14), transparent 56%),
+    radial-gradient(1000px 820px at 70% 118%, rgba(110, 100, 200, 0.18), transparent 60%),
+    linear-gradient(180deg, #0e1018 0%, #0b0d16 100%);
 }
 
 :root[data-theme='light'] {
-  --mg-bg: 240 242 247;
+  --mg-bg: 240 242 248;
   --mg-surface: 255 255 255;
   --mg-surface-strong: 245 247 251;
   --mg-border: 15 23 42;
-  --mg-text: 23 28 38;
-  --mg-muted: 92 102 120;
-  --mg-accent: 79 95 230;
-  --mg-accent-soft: 79 95 230;
-  --mg-danger: 210 60 60;
+  --mg-text: 22 27 38;
+  --mg-muted: 92 102 122;
+  --mg-accent: 92 108 210;
+  --mg-accent-soft: 92 108 210;
+  --mg-danger: 210 70 70;
   --mg-success: 34 150 100;
   --mg-warning: 200 140 20;
   --mg-glass-bg: 255 255 255;
   --mg-glass-alpha: 0.55;
-  --mg-app-gradient: radial-gradient(
-      1200px 800px at 15% -10%,
-      rgba(79, 95, 230, 0.12),
-      transparent 60%
-    ),
-    radial-gradient(900px 700px at 110% 10%, rgba(34, 150, 100, 0.1), transparent 55%),
-    linear-gradient(180deg, #f0f2f7 0%, #e7eaf1 100%);
+  --mg-app-gradient:
+    radial-gradient(1100px 760px at 12% -8%, rgba(92, 108, 210, 0.14), transparent 58%),
+    radial-gradient(900px 720px at 108% 8%, rgba(40, 150, 160, 0.12), transparent 56%),
+    radial-gradient(1000px 820px at 70% 118%, rgba(120, 110, 200, 0.12), transparent 60%),
+    linear-gradient(180deg, #f2f4f9 0%, #e9ecf3 100%);
 }
 
 * {
@@ -71,30 +70,95 @@ body {
   color: rgb(var(--mg-text));
   background: rgb(var(--mg-bg));
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   overflow: hidden;
 }
 
-/* 应用背景：渐变 + 极轻噪点感（用模糊光斑模拟） */
+/* 应用背景：渐变 + 大范围模糊光斑（环境光） */
 .app-bg {
   background-color: rgb(var(--mg-bg));
   background-image: var(--mg-app-gradient);
   background-attachment: fixed;
 }
 
-/* 玻璃卡片：毛玻璃必须保证对比度（§28 约束） */
+/* ===== 液态玻璃系统 ===== */
+
+/* 主玻璃面板：半透明白 + blur/saturate + 细白边 + inset 高光 + 边缘折射 + 大柔阴影 */
 .glass {
+  position: relative;
   background-color: rgb(var(--mg-glass-bg) / var(--mg-glass-alpha));
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
-  border: 1px solid rgb(var(--mg-border) / 0.1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgb(var(--mg-border) / 0.12);
+  box-shadow: 0 20px 60px -24px rgba(8, 10, 26, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 2px rgba(8, 10, 26, 0.30);
+}
+/* 顶部折射高光带（液态玻璃的关键：从顶部流下的光线） */
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.10),
+    rgba(255, 255, 255, 0.02) 32%,
+    transparent 60%
+  );
+  pointer-events: none;
 }
 
 .glass-strong {
-  background-color: rgb(var(--mg-glass-bg) / calc(var(--mg-glass-alpha) + 0.04));
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  background-color: rgb(var(--mg-glass-bg) / calc(var(--mg-glass-alpha) + 0.05));
+  -webkit-backdrop-filter: blur(34px) saturate(165%);
+  backdrop-filter: blur(34px) saturate(165%);
+  border: 1px solid rgb(var(--mg-border) / 0.16);
+  box-shadow: 0 24px 70px -26px rgba(8, 10, 26, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 3px rgba(8, 10, 26, 0.35);
+}
+.glass-strong::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.02) 34%,
+    transparent 62%
+  );
+  pointer-events: none;
+}
+
+/* 次级玻璃（更轻，用于浮动小元素） */
+.glass-soft {
+  background-color: rgb(var(--mg-glass-bg) / calc(var(--mg-glass-alpha) - 0.02));
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid rgb(var(--mg-border) / 0.10);
+  box-shadow: 0 12px 40px -28px rgba(8, 10, 26, 0.50),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+/* 玻璃药丸（格式标签 / 状态徽章用） */
+.glass-pill {
+  background-color: rgb(var(--mg-glass-bg) / 0.10);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
   border: 1px solid rgb(var(--mg-border) / 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20);
+}
+
+/* 玻璃图标容器（Hero / Logo / 封面占位用精致玻璃方） */
+.glass-icon {
+  background-color: rgb(var(--mg-glass-bg) / 0.12);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgb(var(--mg-border) / 0.20);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    0 8px 24px -12px rgba(20, 60, 160, 0.30);
 }
 
 /* 可访问焦点 */
