@@ -4,8 +4,8 @@
 
 ## 当前状态
 
-- **版本**：v0.0.3（开发初期）
-- **当前 Phase**：Phase 6 ✅ 完成（QMC 插件 + 格式研究），准备进入 Phase 7（UI）
+- **版本**：v0.1.0（release 已出 msi + portable zip）
+- **当前 Phase**：Phase 8 ✅ 完成（Tauri 桌面壳 + EXE 打包 msi/zip），进入 Phase 9（压力测试）
 - **最近 Commit**：见下方 Git 状态
 - **GitHub**：✅ 已连接 `zerodaan318-lab/musicglass`（Private），main 已同步
 
@@ -17,7 +17,7 @@
 - 创建 `.gitignore`（排除密钥/用户音乐/大型二进制/target/node_modules 等）
 - 创建 `README.md` + `docs/README.md`
 - 创建 GitHub 私有仓库 `musicglass`
-- 初始 commit `23fe36c` 并 push 至 origin/main
+- 初始 commit 并 push 至 origin/main
 
 ### Phase 1 — 架构（文档族）✅ 完成
 - `docs/ARCHITECTURE.md` — 分层/模块/Pipeline/插件/任务/安全边界
@@ -28,7 +28,6 @@
 - `docs/RECOVERY.md` — 从 GitHub 恢复开发环境手册
 - `docs/formats/README.md` — 格式研究模板与索引
 - `THIRD_PARTY_NOTICES.md` — 第三方依赖登记
-- `scripts/git-sync.ps1` — 自动同步脚本（显式 add，禁 `git add .`）
 - 工具链：Rust stable 1.98.0 装于 `D:\Hermes\mg-rust`（不污染全局）
 
 ### Phase 2 — 音频核心 ✅ 完成
@@ -39,7 +38,7 @@
 - `metadata` / `task-manager`：类型骨架（Phase 3/4 扩充）
 - `plugins`：MusicContainer trait + `Plugin` 枚举注册表（ncm/qmc 静态分发，无 dyn 无循环依赖）
 - 单元测试：core 4 + detector 4 + audio 1 = 9 个，全部通过
-- commit `c2221f0`（含 Phase 1 文档补完）已 push
+- commit 已 push
 
 ### Phase 3 — Metadata ✅ 完成
 - `metadata` crate 引入 `lofty 0.25` 做真实标签读写（覆盖 MP3/FLAC/M4A/WAV/OGG/OPUS + cover/lyrics）
@@ -89,13 +88,6 @@
 - 全量构建通过，qmc 新增 9 测试，总计 **38 个测试全过**
 - **诚实声明**：未用真实 QMC 文件端到端验证（版权约束不主动下载），核心算法已对照公开参考实现单测 + v1 自包含 round-trip；待用户提供合法样本补充
 
-## 已完成
-- 项目脚手架、Git/GitHub 初始化（Phase 0）
-- 架构文档全套（Phase 1）
-- 音频核心骨架（Phase 2）
-- Metadata 真实读写（Phase 3）
-- 任务系统：队列/并发/取消重试/SQLite 历史 + 端到端转换验证（Phase 4）
-
 ### Phase 7 — UI（玻璃拟态前端）✅ 完成
 - 技术栈（任务书 §40/§44）：React 18 + TypeScript + Vite + Tailwind CSS 3 + Framer Motion 11；桌面壳后续 Tauri 2（`apps/desktop`，Phase 8）
 - 目录：`packages/ui`（React 前端）、`packages/shared`（前后端共享 TS 类型，与 Rust `core` serde 结构对齐）
@@ -130,12 +122,20 @@
   - ✅ 拖入 / 转换 / 浏览 / 打开 / 验证 全链路实测通过
   - ✅ NCM→MP3、FLAC→MP3 等路径验证 metadata 嵌入 + 验证徽章正常
 - cargo-tauri CLI 已装（`v2.11.4`，装在 D:\Hermes\mg-rust）
-- **遗留**：EXE 打包（nsis 安装包 + zip 便携包）属 Phase 8 末尾，尚未做，见下方待完成
+- **Liquid Glass 视觉重做（Phase 7 之后）**：低饱和蓝紫/冷灰/淡青环境光 + 液态玻璃材质，保留原功能/布局/交互（commit `7a13f16`）
+
+### Phase 8 EXE 打包 ✅ 完成（2026-08-30）
+- `cargo tauri build --target x86_64-pc-windows-msvc` release 构建通过
+- **MSI 安装包**：`apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/MusicGlass_0.1.0_x64_en-US.msi`（含 ffmpeg，双击安装）
+- **Portable zip**：`apps/desktop/MusicGlass_0.1.0_x64_portable.zip`（560MB，解压即双击 `musicglass-desktop.exe` 运行，ffmpeg 三件套已内嵌）
+- **Tauri 2 已知**：`bundle.targets: ["zip"]` 在本 cargo-tauri 版本（v2.11.4）被 schema 拒绝，portable 改用「release 目录整体压缩」产出，等效便携包
+- release exe 路径：`apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/musicglass-desktop.exe`
+- ffmpeg 资源通过 `tauri.conf.json` 的 `bundle.resources` 打进 `resources/ffmpeg/bin/`，满足「release 必须自带 ffmpeg」铁律
 
 ## 待完成
-- Phase 8 EXE 打包（nsis 安装包 + zip 便携包，目标 §8）
-- Phase 9 ~ Phase 11（见 `PROJECT_PLAN.md`）
-- Phase 9 ~ Phase 11（见 `PROJECT_PLAN.md`）
+- Phase 9：压力测试（100/500/1000 文件、大文件、损坏文件）
+- Phase 10：稳定性（错误处理/日志/恢复/防崩溃）
+- Phase 11：v1.0.0 验收发布
 
 ## 已知问题
 - `lofty` 的 `MimeType` 枚举无 Webp 变体，封面写 webp 时经 `MimeType::from_str` 落入 `Unknown` 分支（数据保留，mime 标记为 image/webp）；读取时也能正确取回 bytes。功能可用，仅类型枚举不显式标注 webp。
@@ -144,4 +144,4 @@
 ## Git / GitHub 状态
 - Remote：`https://github.com/zerodaan318-lab/musicglass.git`
 - Branch：`main`（track origin/main）
-- 同步状态：✅ 已 commit + push（Phase 3 commit 见下方）
+- 同步状态：✅ 已 commit + push

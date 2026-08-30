@@ -431,7 +431,9 @@ name = "musicglass-task-manager"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "musicglass-audio",
  "musicglass-core",
+ "musicglass-metadata",
  "rusqlite",
  "serde",
 ]
